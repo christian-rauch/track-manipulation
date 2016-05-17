@@ -23,6 +23,9 @@ include_directories(  ${Pangolin_INCLUDE_DIRS} )
 link_directories(     ${Pangolin_LIBRARY_DIRS} )
 link_libraries(       ${Pangolin_LIBRARIES}    )
 
+# DART installation
+include_directories(/usr/local/include/dart/)
+
 include_directories(
     ${eigen3_INCLUDE_DIR}
     ${PROJECT_SOURCE_DIR}
