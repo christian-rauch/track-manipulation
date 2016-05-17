@@ -1,2 +1,6 @@
+# raw data
 video/
 models/
+
+# temporary build files
+build/
