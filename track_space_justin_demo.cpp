@@ -30,6 +30,19 @@
 
 #define EIGEN_DONT_ALIGN
 
+// switch depth sources
+//#define DEPTH_SOURCE_IMAGE // demo files
+//#define DEPTH_SOURCE_LCM
+// read depth (not disparity) images from MultiSense SL, use specific camera parameters
+#define DEPTH_SOURCE_IMAGE_MULTISENSE
+
+#ifdef DEPTH_SOURCE_LCM
+    #include <lcm_depth_provider/lcm_depth_provider.hpp>
+    // workaround, cmake's target_link_libraries does not work
+    #include <lcm_depth_provider/lcm_depth_provider.cpp>
+#endif
+
+
 using namespace std;
 
 enum PointColorings {
@@ -214,6 +227,7 @@ int main() {
 
     std::vector<pangolin::Var<float> *> sizeVars;
 
+#ifdef DEPTH_SOURCE_IMAGE
     // initialize depth source
 
     dart::ImageDepthSource<ushort,uchar3> * depthSource = new dart::ImageDepthSource<ushort,uchar3>();
@@ -223,8 +237,22 @@ int main() {
 //                            true,videoLoc+"/color",dart::IMAGE_PNG,320,240);
 
     // ----
+#endif
+
+#ifdef DEPTH_SOURCE_IMAGE_MULTISENSE
+    dart::ImageDepthSource<uint16_t,uchar3> * depthSource = new dart::ImageDepthSource<uint16_t,uchar3>();
+    depthSource->initialize("../depth_box_pick",dart::IMAGE_PNG, make_float2(556.183166504, 556.183166504),make_float2(512,512), 1024, 1024, 0.02);
+#endif
+
+#ifdef DEPTH_SOURCE_LCM
+    LCM_DepthSource<uint16_t,uchar3> *depthSource = new LCM_DepthSource<uint16_t,uchar3>();
+
+    depthSource->initLCM("CAMERA");
+    //update in the loop: lcm_depth_source->handleLCM();
+#endif
 
     tracker.addDepthSource(depthSource);
+    //tracker.addDepthSource(lcm_depth_source);
     dart::Optimizer & optimizer = *tracker.getOptimizer();
 
     const static int obsSdfSize = 64;
@@ -306,6 +334,7 @@ int main() {
     static pangolin::Var<float> sigmaPixels("ui.sigmaPixels",3.0,0.01,4);
     static pangolin::Var<float> sigmaDepth("ui.sigmaDepth",0.1,0.001,1);
     static pangolin::Var<float> focalLength("ui.focalLength",depthSource->getFocalLength().x,0.8*depthSource->getFocalLength().x,1.2*depthSource->getFocalLength().x);//475,525); //525.0,450.0,600.0);
+    //static pangolin::Var<float> focalLength_y("ui.focalLength_y",depthSource->getFocalLength().y, 500, 1500);
     static pangolin::Var<bool> showCameraPose("ui.showCameraPose",false,true);
     static pangolin::Var<bool> showEstimatedPose("ui.showEstimate",true,true);
     static pangolin::Var<bool> showReported("ui.showReported",false,true);
@@ -354,7 +383,8 @@ int main() {
     pangolin::Var<float> tableIntercept("opt.tableIntercept",initialTableIntercept,-1,1);
 
     static pangolin::Var<bool> fitTable("opt.fitTable",true,true);
-    static pangolin::Var<bool> subtractTable("opt.subtractTable",true,true);
+    //static pangolin::Var<bool> subtractTable("opt.subtractTable",true,true);
+    static pangolin::Var<bool> subtractTable("opt.subtractTable",false,true);
 
     static pangolin::Var<bool> * contactVars[10];
     contactVars[0] = new pangolin::Var<bool>("lim.contactThumbR",false,true);

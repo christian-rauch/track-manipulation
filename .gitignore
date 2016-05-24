@@ -3,4 +3,12 @@ video/
 models/
 
 # temporary build files
-build/
+build*/
+
+# Qt Creator project files
+*.user
+
+# vim backup files
+*.swp
+
+*.png
