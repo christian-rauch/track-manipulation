@@ -8,7 +8,7 @@
 #include <bot_core/images_t.hpp>
 
 struct StereoCameraParameter {
-    float2 focus_length;    // f_x, f_y in pxl
+    float2 focal_length;    // f_x, f_y in pxl
     float2 camera_center;   // c_x, c_y in pxl
     float baseline;         // b in meter
     uint64_t width;         // image width in pxl
@@ -33,7 +33,7 @@ private:
     float _ScaleToMeters;
 
 public:
-    LCM_DepthSource();
+    LCM_DepthSource(const StereoCameraParameter &param);
 
     ~LCM_DepthSource();
 

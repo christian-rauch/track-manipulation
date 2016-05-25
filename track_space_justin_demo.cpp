@@ -245,7 +245,15 @@ int main() {
 #endif
 
 #ifdef DEPTH_SOURCE_LCM
-    LCM_DepthSource<uint16_t,uchar3> *depthSource = new LCM_DepthSource<uint16_t,uchar3>();
+    // Valkyrie Unit D, MultiSense SL
+    StereoCameraParameter val_multisense;
+    val_multisense.focal_length = make_float2(556.183166504, 556.183166504);
+    val_multisense.camera_center = make_float2(512, 512);
+    val_multisense.baseline = 0.07;
+    val_multisense.width = 1024;
+    val_multisense.height = 1024;
+
+    LCM_DepthSource<uint16_t,uchar3> *depthSource = new LCM_DepthSource<uint16_t,uchar3>(val_multisense);
 
     depthSource->initLCM("CAMERA");
     //update in the loop: lcm_depth_source->handleLCM();

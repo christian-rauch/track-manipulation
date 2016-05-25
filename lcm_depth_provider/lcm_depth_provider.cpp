@@ -7,7 +7,7 @@
 #include <zlib.h>
 
 template <typename DepthType, typename ColorType>
-LCM_DepthSource<DepthType,ColorType>::LCM_DepthSource() {
+LCM_DepthSource<DepthType,ColorType>::LCM_DepthSource(const StereoCameraParameter &param) {
     this->_isLive = true; // no way to control LCM playback from here
     this->_hasColor = false; // only depth for now
     this->_colorWidth = 0;
@@ -20,22 +20,39 @@ LCM_DepthSource<DepthType,ColorType>::LCM_DepthSource() {
     // rotation = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
     // translation = [-0.0700, 0.0, 0.0]
 
-    this->_focalLength = make_float2(556.183166504, 556.183166504);
+    _cam_param = param;
+
+    //this->_focalLength = make_float2(556.183166504, 556.183166504);
+    this->_focalLength = param.focal_length;
+
+//    // set principal point / camera centre if given
+//    if(param.camera_center.x > 0 && param.camera_center.y > 0)
+//        this->_principalPoint = param.camera_center;
+
+//    // set image dimensions if given
+//    if(param.width > 0 && param.height > 0) {
+//        this->_depthWidth = param.width;
+//        this->_depthHeight = param.height;
+//    }
+
+    this->_principalPoint = param.camera_center;
+    this->_depthWidth = param.width;
+    this->_depthHeight = param.height;
 
     //_ScaleToMeters = 0.001; // depth_in_m = _ScaleToMeters * depth_in_data ??
     _ScaleToMeters = 0.02;
 
     // TODO: set dynamically
-    this->_depthWidth = 1024;
-    this->_depthHeight = 1024;
+    //this->_depthWidth = 1024;
+    //this->_depthHeight = 1024;
     //this->_principalPoint = make_float2(this->_depthWidth/2,this->_depthHeight/2);
-    this->_principalPoint = make_float2(512, 512);
+    //this->_principalPoint = make_float2(512, 512);
 
-    _cam_param.baseline = 0.07;
-    _cam_param.focus_length = make_float2(556.183166504, 556.183166504);
-    _cam_param.camera_center = make_float2(512, 512);
-    _cam_param.width = 1024;
-    _cam_param.height = 1024;
+//    _cam_param.baseline = 0.07;
+//    _cam_param.focal_length = make_float2(556.183166504, 556.183166504);
+//    _cam_param.camera_center = make_float2(512, 512);
+//    _cam_param.width = 1024;
+//    _cam_param.height = 1024;
 
     // allocate memory for depth image
 #ifdef CUDA_BUILD
@@ -146,6 +163,7 @@ void LCM_DepthSource<DepthType,ColorType>::imgHandle(const lcm::ReceiveBuffer* r
         }
 
 
+        // process image data
         switch(img_type) {
         // raw disparity image data
         case bot_core::images_t::DISPARITY:
@@ -213,7 +231,7 @@ template <typename DepthType, typename ColorType>
 void LCM_DepthSource<DepthType,ColorType>::disparity_to_depth(DepthType * disparity_img) {
     // Z = (f*b)/d
     // distance = (focal_length_pxl * baseline_meter) / disparity_pxl
-    const float factor = _cam_param.focus_length.x * _cam_param.baseline;
+    const float factor = _cam_param.focal_length.x * _cam_param.baseline;
     const float scale = 1.0/(_ScaleToMeters);
     for(unsigned int i=0; i<_depthData->length(); i++) {
         // deal with disparity 0 (avoid FPE / division by zero)
