@@ -32,9 +32,9 @@
 
 // switch depth sources
 //#define DEPTH_SOURCE_IMAGE // demo files
-//#define DEPTH_SOURCE_LCM
+#define DEPTH_SOURCE_LCM
 // read depth (not disparity) images from MultiSense SL, use specific camera parameters
-#define DEPTH_SOURCE_IMAGE_MULTISENSE
+//#define DEPTH_SOURCE_IMAGE_MULTISENSE
 
 #ifdef DEPTH_SOURCE_LCM
     #include <lcm_depth_provider/lcm_depth_provider.hpp>
