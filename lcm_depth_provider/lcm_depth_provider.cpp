@@ -7,7 +7,7 @@
 #include <zlib.h>
 
 template <typename DepthType, typename ColorType>
-LCM_DepthSource<DepthType,ColorType>::LCM_DepthSource(const StereoCameraParameter &param) {
+LCM_DepthSource<DepthType,ColorType>::LCM_DepthSource(const StereoCameraParameter &param, const float scale) {
     this->_isLive = true; // no way to control LCM playback from here
     this->_hasColor = false; // only depth for now
     this->_colorWidth = 0;
@@ -22,37 +22,13 @@ LCM_DepthSource<DepthType,ColorType>::LCM_DepthSource(const StereoCameraParamete
 
     _cam_param = param;
 
-    //this->_focalLength = make_float2(556.183166504, 556.183166504);
     this->_focalLength = param.focal_length;
-
-//    // set principal point / camera centre if given
-//    if(param.camera_center.x > 0 && param.camera_center.y > 0)
-//        this->_principalPoint = param.camera_center;
-
-//    // set image dimensions if given
-//    if(param.width > 0 && param.height > 0) {
-//        this->_depthWidth = param.width;
-//        this->_depthHeight = param.height;
-//    }
-
     this->_principalPoint = param.camera_center;
     this->_depthWidth = param.width;
     this->_depthHeight = param.height;
 
-    //_ScaleToMeters = 0.001; // depth_in_m = _ScaleToMeters * depth_in_data ??
-    _ScaleToMeters = 0.02;
-
-    // TODO: set dynamically
-    //this->_depthWidth = 1024;
-    //this->_depthHeight = 1024;
-    //this->_principalPoint = make_float2(this->_depthWidth/2,this->_depthHeight/2);
-    //this->_principalPoint = make_float2(512, 512);
-
-//    _cam_param.baseline = 0.07;
-//    _cam_param.focal_length = make_float2(556.183166504, 556.183166504);
-//    _cam_param.camera_center = make_float2(512, 512);
-//    _cam_param.width = 1024;
-//    _cam_param.height = 1024;
+    // depth_in_m = _ScaleToMeters * depth_in_data ??
+    _ScaleToMeters = scale;
 
     // allocate memory for depth image
 #ifdef CUDA_BUILD
@@ -72,11 +48,6 @@ LCM_DepthSource<DepthType,ColorType>::~LCM_DepthSource() {
     delete [] _depthData;
 #endif // CUDA_BUILD
 }
-
-//template <typename DepthType, typename ColorType>
-//void LCM_DepthSource<DepthType,ColorType>::init() {
-//    this->_frame = 0;
-//}
 
 template <typename DepthType, typename ColorType>
 void LCM_DepthSource<DepthType,ColorType>::setFrame(const uint frame) {
@@ -101,16 +72,6 @@ bool LCM_DepthSource<DepthType,ColorType>::hasRadialDistortionParams() const {
     return false;
 }
 
-//template <typename DepthType, typename ColorType>
-//const DepthType* LCM_DepthSource<DepthType,ColorType>::getDepth() const {
-
-//}
-
-//template <typename DepthType, typename ColorType>
-//const DepthType* LCM_DepthSource<DepthType,ColorType>::getDeviceDepth() const {
-
-//}
-
 template <typename DepthType, typename ColorType>
 bool LCM_DepthSource<DepthType,ColorType>::initLCM(const std::string img_channel) {
 
@@ -118,32 +79,21 @@ bool LCM_DepthSource<DepthType,ColorType>::initLCM(const std::string img_channel
     if(!lcm->good())
         return false;
 
-    lcm->subscribe(img_channel, &LCM_DepthSource<short unsigned int, uchar3>::imgHandle, this);
+    lcm->subscribe(img_channel, &LCM_DepthSource<DepthType, ColorType>::imgHandle, this);
 }
-
-//template <typename DepthType, typename ColorType>
-//bool LCM_DepthSource<DepthType,ColorType>::handleLCM() {
-//    return lcm->handle();
-//}
 
 template <typename DepthType, typename ColorType>
 void LCM_DepthSource<DepthType,ColorType>::imgHandle(const lcm::ReceiveBuffer* rbuf, const std::string& channel,
                const bot_core::images_t* msg) {
-    std::cout<<"received message!!"<<std::endl;
-
-    // TODO: set dynamically
-    //uint _depthWidth;
-    //uint _depthHeight;
-    //_principalPoint = make_float2(this->_depthWidth/2,this->_depthHeight/2);
+    //std::cout<<"received message!!"<<std::endl;
 
     // read data
     const int64_t n_img = msg->n_images;
     const std::vector<int16_t> image_types = msg->image_types;
-    std::cout<<"received "<<n_img<<" images at "<<msg->utime<<std::endl;
+    //std::cout<<"received "<<n_img<<" images at "<<msg->utime<<std::endl;
 
     // pointer to constant values of raw data, we are not going to change the image
     const uint8_t * raw_data = NULL;
-    //uint8_t * raw_data = NULL;
 
     // go over all images
     for(unsigned int i=0; i<n_img; i++) {
@@ -153,14 +103,14 @@ void LCM_DepthSource<DepthType,ColorType>::imgHandle(const lcm::ReceiveBuffer* r
         // real expected image size (width*height*byte_per_pixel)
         uint64_t image_size_real = msg->images[i].row_stride * msg->images[i].height;
 
-        // dbg: show information about disparity image
-        if(img_type==bot_core::images_t::DISPARITY || img_type==bot_core::images_t::DISPARITY_ZIPPED) {
-            std::cout<<"img size raw "<<image_size_raw<<" byte"<<std::endl;
-            std::cout<<"img size real "<<image_size_real<<" byte"<<std::endl;
-            //std::cout<<"img size real2 "<<msg->images[i].data.size()<<" byte"<<std::endl;
-            const int bpp = msg->images[i].row_stride / msg->images[i].width;
-            std::cout<<"using "<<bpp<<" byte per pixel"<<std::endl;
-        }
+//        // dbg: show information about disparity image
+//        if(img_type==bot_core::images_t::DISPARITY || img_type==bot_core::images_t::DISPARITY_ZIPPED) {
+//            std::cout<<"img size raw "<<image_size_raw<<" byte"<<std::endl;
+//            std::cout<<"img size real "<<image_size_real<<" byte"<<std::endl;
+//            //std::cout<<"img size real2 "<<msg->images[i].data.size()<<" byte"<<std::endl;
+//            const int bpp = msg->images[i].row_stride / msg->images[i].width;
+//            std::cout<<"using "<<bpp<<" byte per pixel"<<std::endl;
+//        }
 
 
         // process image data
@@ -168,7 +118,6 @@ void LCM_DepthSource<DepthType,ColorType>::imgHandle(const lcm::ReceiveBuffer* r
         // raw disparity image data
         case bot_core::images_t::DISPARITY:
             raw_data = msg->images[i].data.data();
-            //raw_data = msg->images[i].data;
             break;
 
         // zlib compressed disparity image data
@@ -196,16 +145,24 @@ void LCM_DepthSource<DepthType,ColorType>::imgHandle(const lcm::ReceiveBuffer* r
                     break;
                 }
             }
-            std::cout<<"img size raw "<<image_size_raw<<std::endl;
-            std::cout<<"img size real "<<image_size_real<<std::endl;
+//            std::cout<<"img size raw "<<image_size_raw<<std::endl;
+//            std::cout<<"img size real "<<image_size_real<<std::endl;
             break;
         }
     } // for i over images_t
 
+    std::vector<DepthType> data;
+
     if(raw_data!=NULL) {
         // found disparity image
-        // convert
-        disparity_to_depth((DepthType*)raw_data);
+        // concatenate 8bit to 16bit using big-endian
+        std::vector<uint16_t> data_16bit(_depthData->length());
+        memcpy(data_16bit.data(), raw_data, sizeof(uint16_t)*_depthData->length());
+        // cast 16bit value to template type 'DepthType'
+        std::vector<DepthType> data_typed(data_16bit.begin(), data_16bit.end());
+        // disparity to distance
+        disparity_to_depth(data_typed.data());
+        data = data_typed;
     }
     else {
         std::cerr<<"no disparity image found"<<std::endl;
@@ -217,7 +174,7 @@ void LCM_DepthSource<DepthType,ColorType>::imgHandle(const lcm::ReceiveBuffer* r
     // sync
 #ifdef CUDA_BUILD
     //std::cout<<"copying "<<sizeof(DepthType)<<" x "<<_depthData->length()<<" bytes of data"<<std::endl;
-    memcpy(_depthData->hostPtr(), raw_data, sizeof(DepthType)*_depthData->length());
+    memcpy(_depthData->hostPtr(), data.data(), sizeof(DepthType)*_depthData->length());
     delete [] raw_data;
 #else
     _depthData = raw_data;
@@ -228,14 +185,15 @@ void LCM_DepthSource<DepthType,ColorType>::imgHandle(const lcm::ReceiveBuffer* r
 
 // replace disparity by depth, values are changes inplace (in memory)
 template <typename DepthType, typename ColorType>
-void LCM_DepthSource<DepthType,ColorType>::disparity_to_depth(DepthType * disparity_img) {
+void LCM_DepthSource<DepthType,ColorType>::disparity_to_depth(DepthType *disparity_img) {
     // Z = (f*b)/d
     // distance = (focal_length_pxl * baseline_meter) / disparity_pxl
     const float factor = _cam_param.focal_length.x * _cam_param.baseline;
-    const float scale = 1.0/(_ScaleToMeters);
+
+    // compute distance from dispaerity per pixel
+    // TODO: Is there a faster way than going thru each pixel individually?
     for(unsigned int i=0; i<_depthData->length(); i++) {
         // deal with disparity 0 (avoid FPE / division by zero)
-        disparity_img[i] = (disparity_img[i]!=0) ? (factor / disparity_img[i]) * scale : 0;
-        //disparity_img[i] *= 1.0/(_ScaleToMeters);
+        disparity_img[i] = (disparity_img[i]!=0.0) ? (factor / disparity_img[i]) : 0;
     }
 }

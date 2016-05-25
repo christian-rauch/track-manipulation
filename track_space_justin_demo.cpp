@@ -241,7 +241,7 @@ int main() {
 
 #ifdef DEPTH_SOURCE_IMAGE_MULTISENSE
     dart::ImageDepthSource<uint16_t,uchar3> * depthSource = new dart::ImageDepthSource<uint16_t,uchar3>();
-    depthSource->initialize("../depth_box_pick",dart::IMAGE_PNG, make_float2(556.183166504, 556.183166504),make_float2(512,512), 1024, 1024, 0.02);
+    depthSource->initialize("../depth_box_pick",dart::IMAGE_PNG, make_float2(556.183166504, 556.183166504),make_float2(512,512), 1024, 1024, 0.001);
 #endif
 
 #ifdef DEPTH_SOURCE_LCM
@@ -253,14 +253,13 @@ int main() {
     val_multisense.width = 1024;
     val_multisense.height = 1024;
 
-    LCM_DepthSource<uint16_t,uchar3> *depthSource = new LCM_DepthSource<uint16_t,uchar3>(val_multisense);
+    //LCM_DepthSource<uint16_t,uchar3> *depthSource = new LCM_DepthSource<uint16_t,uchar3>(val_multisense);
+    LCM_DepthSource<float,uchar3> *depthSource = new LCM_DepthSource<float,uchar3>(val_multisense, 1);
 
     depthSource->initLCM("CAMERA");
-    //update in the loop: lcm_depth_source->handleLCM();
 #endif
 
     tracker.addDepthSource(depthSource);
-    //tracker.addDepthSource(lcm_depth_source);
     dart::Optimizer & optimizer = *tracker.getOptimizer();
 
     const static int obsSdfSize = 64;
@@ -957,7 +956,8 @@ int main() {
                 static const float depthMin = 0.3;
                 static const float depthMax = 1.0;
 
-                const unsigned short * depth = depthSource->getDepth();
+                //const unsigned short * depth = depthSource->getDepth();
+                const auto * depth = depthSource->getDepth();
 
                 for (int i=0; i<depthSource->getDepthWidth()*depthSource->getDepthHeight(); ++i) {
                     if (depth[i] == 0) {

@@ -33,11 +33,9 @@ private:
     float _ScaleToMeters;
 
 public:
-    LCM_DepthSource(const StereoCameraParameter &param);
+    LCM_DepthSource(const StereoCameraParameter &param, const float scale = 1.0);
 
     ~LCM_DepthSource();
-
-    //void init();
 
     void setFrame(const uint frame);
 
@@ -59,13 +57,12 @@ public:
 
     bool initLCM(const std::string channel);
 
-//    bool handleLCM();
-
+    // handle lcm images_t message and save their content
     void imgHandle(const lcm::ReceiveBuffer* rbuf, const std::string& channel,
                    const bot_core::images_t* msg);
 
     // convert a disparity image to a distance image using camera parameters
-    void disparity_to_depth(DepthType * disparity_img);
+    void disparity_to_depth(DepthType *disparity_img);
 };
 
 #endif
