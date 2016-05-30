@@ -47,6 +47,9 @@
     #include <depth_sources/lcm/lcm_depth_provider.hpp>
 #endif
 
+// switch use of contact information
+//#define USE_CONTACT_PRIOR
+
 
 using namespace std;
 
@@ -120,23 +123,16 @@ const static int leftShoulderFrame = 28;
 const static int leftPalmFrame = 34;
 const static int headFrame = 56;
 
-void loadReportedJointAnglesAndContacts(std::string jointAngleFile, std::string contactFile,
-                                        std::vector<float *> & jointAngles, std::vector<int *> & contacts) {
-
-    int nFrames, nContactFrames;
+void loadReportedJointAngles(std::string jointAngleFile, std::vector<float *> & jointAngles) {
+    int nFrames;
     int nJoints;
 
-    std::ifstream jointAngleStream, contactStream;
+    std::ifstream jointAngleStream;
     jointAngleStream.open(jointAngleFile);
-    contactStream.open(contactFile);
 
     assert(jointAngleStream.is_open());
-    assert(contactStream.is_open());
 
     jointAngleStream >> nFrames;
-    contactStream >> nContactFrames;
-
-    assert(nFrames == nContactFrames);
 
     jointAngleStream >> nJoints;
 
@@ -147,18 +143,29 @@ void loadReportedJointAnglesAndContacts(std::string jointAngleFile, std::string 
             jointAngleStream >> frameAngles[j];
         }
         jointAngles.push_back(frameAngles);
+    }
 
+    jointAngleStream.close();
+}
+
+void loadReportedContacts(std::string contactFile, std::vector<int *> & contacts) {
+    int nFrames, nContactFrames;
+    int nJoints;
+
+    std::ifstream contactStream;
+    contactStream.open(contactFile);
+
+    contactStream >> nContactFrames;
+
+    for (int i=0; i<nContactFrames; ++i) {
         int * frameContacts = new int[10];
         for (int j=0; j<10; ++j) {
             contactStream >> frameContacts[j];
         }
         contacts.push_back(frameContacts);
-
     }
 
-    jointAngleStream.close();
     contactStream.close();
-
 }
 
 static const dart::SE3 initialT_cj(make_float4(-0.476295, -0.0945505, -0.874187, -0.22454),
@@ -382,7 +389,9 @@ int main() {
     pangolin::Var<float> lambdaObsToMod("opt.lambdaObsToMod",1,0,1);
     pangolin::Var<float> lambdaIntersection("opt.lambdaIntersection",1.f,0,40);
     //pangolin::Var<float> selfIntersectWeight("opt.selfIntersectWeight",atof(argv[2]),0,40);
+#ifdef USE_CONTACT_PRIOR
     pangolin::Var<float> lambdaContact("opt.lambdaContact",1.f,0,200);
+#endif
 
 
     pangolin::Var<float> infoAccumulationRate("opt.infoAccumulationRate",0.1,0.0,1.0); // 0.8
@@ -398,6 +407,7 @@ int main() {
     //static pangolin::Var<bool> subtractTable("opt.subtractTable",true,true);
     static pangolin::Var<bool> subtractTable("opt.subtractTable",false,true);
 
+#ifdef USE_CONTACT_PRIOR
     static pangolin::Var<bool> * contactVars[10];
     contactVars[0] = new pangolin::Var<bool>("lim.contactThumbR",false,true);
     contactVars[1] = new pangolin::Var<bool>("lim.contactIndexR",false,true);
@@ -410,6 +420,7 @@ int main() {
     contactVars[8] = new pangolin::Var<bool>("lim.contactRingL",false,true);
     contactVars[9] = new pangolin::Var<bool>("lim.contactLittleL",false,true);
     bool anyContact = false;
+#endif
 
     int fpsWindow = 10;
     pangolin::basetime lastTime = pangolin::TimeNow();
@@ -444,12 +455,15 @@ int main() {
     dart::OptimizationOptions & opts = tracker.getOptions();
     opts.lambdaObsToMod = 1;
     memset(opts.lambdaIntersection.data(),0,tracker.getNumModels()*tracker.getNumModels()*sizeof(float));
+#ifdef USE_CONTACT_PRIOR
     opts.contactThreshold = 0.02;
+#endif
     opts.planeNormal[0] =  make_float3(0,0,1);
     opts.planeNormal[2] = make_float3(0,0,1);
     opts.planeNormal[1] = make_float3(0,0,0);
     opts.regularization[0] = opts.regularization[1] = opts.regularization[2] = 0.01;
 
+#ifdef USE_CONTACT_PRIOR
     float3 initialContact = make_float3(0,0.02,0);
 
     std::vector<dart::ContactPrior *> contactPriors;
@@ -464,6 +478,7 @@ int main() {
         contactPriors.push_back(prior);
         tracker.addPrior(prior);
     }
+#endif
 
     // set up potential intersections
     {
@@ -489,9 +504,11 @@ int main() {
 
     // set up reported pose offsets
     std::vector<float *> reportedJointAngles;
+    loadReportedJointAngles(videoLoc+"/reportedJointAngles.txt", reportedJointAngles);
+#ifdef USE_CONTACT_PRIOR
     std::vector<int *> reportedContacts;
-    loadReportedJointAnglesAndContacts(videoLoc+"/reportedJointAngles.txt",videoLoc+"/reportedContacts.txt",
-                                       reportedJointAngles,reportedContacts);
+    loadReportedContacts(videoLoc+"/reportedContacts.txt", reportedContacts);
+#endif
 
     std::cout << "loaded " << reportedJointAngles.size() << " frames" << std::endl;
 
@@ -841,6 +858,7 @@ int main() {
 
         }
 
+#ifdef USE_CONTACT_PRIOR
         static pangolin::Var<bool> showFingerContacts("ui.showContacts",true,true);
         if (showFingerContacts) {
 
@@ -865,6 +883,7 @@ int main() {
             glEnd();
 
         }
+#endif
 
         if (showPredictedPoints) {
 
@@ -1139,6 +1158,7 @@ int main() {
 
             }
 
+#ifdef USE_CONTACT_PRIOR
             // update contact vars
             const int * contact = reportedContacts[depthSource->getFrame()];
             for (int i=0; i<10; ++i) {
@@ -1147,6 +1167,7 @@ int main() {
                 *contactVars[i] = inContact;
                 contactPriors[i]->setWeight(inContact ? lambdaContact : 0);
             }
+#endif
 
             // update table based on head movement
             {
@@ -1192,13 +1213,18 @@ int main() {
 
             switch (trackingMode) {
             case ModeObjOnTable:
+#ifdef USE_CONTACT_PRIOR
                 if (anyContact || totalPerPointError > resetInfoThreshold) {
+#else
+                if (totalPerPointError > resetInfoThreshold) {
+#endif
                     trackingMode = ModeIntermediate;
                     tracker.getDampingMatrix(1) = Eigen::MatrixXf::Zero(6,6);
                 }
                 break;
             case ModeIntermediate:
                 if (totalPerPointError < stabilityThreshold) {
+#ifdef USE_CONTACT_PRIOR
                     if (anyContact) {
                         bool contactRight = false;
                         for (int i=0; i<5; ++i) { contactRight = contactRight || *contactVars[i]; }
@@ -1206,11 +1232,18 @@ int main() {
                     } else {
                         trackingMode = ModeObjOnTable;
                     }
+#else
+                    trackingMode = ModeObjOnTable;
+#endif
                 }
                 break;
             case ModeObjGrasped:
             case ModeObjGraspedLeft:
+#ifdef USE_CONTACT_PRIOR
                 if (!anyContact || totalPerPointError > resetInfoThreshold) {
+#else
+                if (true) {
+#endif
                     trackingMode = ModeIntermediate;
                     tracker.getDampingMatrix(1) = Eigen::MatrixXf::Zero(6,6);
                 }
@@ -1218,10 +1251,12 @@ int main() {
             }
 
         } else {
+#ifdef USE_CONTACT_PRIOR
             for (int i=0; i<10; ++i) {
                 bool inContact =  *contactVars[i];
                 contactPriors[i]->setWeight(inContact ? lambdaContact : 0);
             }
+#endif
         }
 
     }
@@ -1241,9 +1276,11 @@ int main() {
         delete sizeVars[i];
     }
 
+#ifdef USE_CONTACT_PRIOR
     for (int i=0; i<10; ++i) {
         delete contactVars[i];
     }
+#endif
 
     delete depthSource;
 
