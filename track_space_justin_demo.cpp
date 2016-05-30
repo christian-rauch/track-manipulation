@@ -32,14 +32,19 @@
 
 // switch depth sources
 //#define DEPTH_SOURCE_IMAGE // demo files
+// read depth images from LCM topic
 #define DEPTH_SOURCE_LCM
 // read depth (not disparity) images from MultiSense SL, use specific camera parameters
 //#define DEPTH_SOURCE_IMAGE_MULTISENSE
 
+//#ifdef DEPTH_SOURCE_LCM
+//    #include <lcm_depth_provider/lcm_depth_provider.hpp>
+//    // workaround, cmake's target_link_libraries does not work
+//    #include <lcm_depth_provider/lcm_depth_provider.cpp>
+//#endif
+
 #ifdef DEPTH_SOURCE_LCM
-    #include <lcm_depth_provider/lcm_depth_provider.hpp>
-    // workaround, cmake's target_link_libraries does not work
-    #include <lcm_depth_provider/lcm_depth_provider.cpp>
+    #include <depth_sources/lcm/lcm_depth_provider.hpp>
 #endif
 
 
@@ -252,9 +257,9 @@ int main() {
     val_multisense.baseline = 0.07;
     val_multisense.width = 1024;
     val_multisense.height = 1024;
+    val_multisense.subpixel_resolution = 1.0/16.0;
 
-    //LCM_DepthSource<uint16_t,uchar3> *depthSource = new LCM_DepthSource<uint16_t,uchar3>(val_multisense);
-    LCM_DepthSource<float,uchar3> *depthSource = new LCM_DepthSource<float,uchar3>(val_multisense, 1);
+    LCM_DepthSource<float,uchar3> *depthSource = new LCM_DepthSource<float,uchar3>(val_multisense);
 
     depthSource->initLCM("CAMERA");
 #endif

@@ -43,14 +43,10 @@ link_libraries(
 )
 
 # LCM
-#add_subdirectory(lcm_depth_provider)
-#include_directories(lcm_depth_provider/bot_core)
-include_directories(lcm_depth_provider)
-add_library(lcm_depth_provider STATIC lcm_depth_provider/lcm_depth_provider.cpp)
-#target_link_libraries(lcm_depth_provider ${lcm_LIBRARIES})
-
-message("lcm found: " ${lcm_FOUND})
-message("lcm libs: " ${lcm_LIBRARIES})
+if(lcm_FOUND)
+    include_directories(dart/src/depth_sources/lcm)
+    link_libraries(${lcm_LIBRARIES})
+endif()
 
 ##########################################################################
 #   Build GPU or CPU-only executable depending on cuda                   #
@@ -80,12 +76,3 @@ cuda_add_executable(
     track_space_justin_demo.cpp
 )
 target_link_libraries(track_space_justin_demo dart)
-
-#TODO: linking will not work, missing symbols
-target_link_libraries(track_space_justin_demo lcm_depth_provider)
-target_link_libraries(track_space_justin_demo ${lcm_LIBRARIES})
-
-#get_cmake_property(_variableNames VARIABLES)
-#foreach (_variableName ${_variableNames})
-#    message(STATUS "${_variableName}=${${_variableName}}")
-#endforeach()
