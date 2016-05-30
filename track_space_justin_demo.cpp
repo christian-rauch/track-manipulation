@@ -33,9 +33,9 @@
 // switch depth sources
 //#define DEPTH_SOURCE_IMAGE // demo files
 // read depth images from LCM topic
-#define DEPTH_SOURCE_LCM
+//#define DEPTH_SOURCE_LCM
 // read depth (not disparity) images from MultiSense SL, use specific camera parameters
-//#define DEPTH_SOURCE_IMAGE_MULTISENSE
+#define DEPTH_SOURCE_IMAGE_MULTISENSE
 
 //#ifdef DEPTH_SOURCE_LCM
 //    #include <lcm_depth_provider/lcm_depth_provider.hpp>
@@ -246,7 +246,7 @@ int main() {
 
 #ifdef DEPTH_SOURCE_IMAGE_MULTISENSE
     dart::ImageDepthSource<uint16_t,uchar3> * depthSource = new dart::ImageDepthSource<uint16_t,uchar3>();
-    depthSource->initialize("../depth_box_pick",dart::IMAGE_PNG, make_float2(556.183166504, 556.183166504),make_float2(512,512), 1024, 1024, 0.001);
+    depthSource->initialize("../depth_grasping_bottle",dart::IMAGE_PNG, make_float2(556.183166504, 556.183166504),make_float2(512,512), 1024, 1024, 0.001);
 #endif
 
 #ifdef DEPTH_SOURCE_LCM
