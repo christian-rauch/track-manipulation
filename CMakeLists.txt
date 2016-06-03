@@ -69,10 +69,10 @@ add_definitions(-DCUDA_BUILD)
 set(all_sources ${sources} ${cpu_sources} ${gpu_sources})
 link_directories( ${CUDA_TOOLKIT_ROOT_DIR}/lib64/)
 
-set(DART_ROOT ${PROJECT_SOURCE_DIR}/../dart CACHE PATH "path to the dart root directory")
-message(STATUS "dart is at ${DART_ROOT}")
-include_directories(${DART_ROOT}/src)
-link_directories(${DART_ROOT}/lib)
+#set(DART_ROOT ${PROJECT_SOURCE_DIR}/../dart CACHE PATH "path to the dart root directory")
+#message(STATUS "dart is at ${DART_ROOT}")
+#include_directories(${DART_ROOT}/src)
+#link_directories(${DART_ROOT}/lib)
 
 cuda_add_executable(
     #executable

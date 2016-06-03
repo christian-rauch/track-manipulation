@@ -13,20 +13,20 @@
 #include <cuda_runtime.h>
 #include <vector_types.h>
 
-#include "depth_sources/image_depth_source.h"
-#include "geometry/plane_fitting.h"
-#include "img_proc/img_ops.h"
-#include "optimization/priors.h"
-#include "tracker.h"
-#include "util/dart_io.h"
-#include "util/gl_dart.h"
-#include "util/image_io.h"
-#include "util/ostream_operators.h"
-#include "util/string_format.h"
-#include "visualization/color_ramps.h"
-#include "visualization/data_association_viz.h"
-#include "visualization/gradient_viz.h"
-#include "visualization/sdf_viz.h"
+#include <dart/depth_sources/image_depth_source.h>
+#include <dart/geometry/plane_fitting.h>
+#include <dart/img_proc/img_ops.h>
+#include <dart/optimization/priors.h>
+#include <dart/tracker.h>
+#include <dart/util/dart_io.h>
+#include <dart/util/gl_dart.h>
+#include <dart/util/image_io.h>
+#include <dart/util/ostream_operators.h>
+#include <dart/util/string_format.h>
+#include <dart/visualization/color_ramps.h>
+#include <dart/visualization/data_association_viz.h>
+#include <dart/visualization/gradient_viz.h>
+#include <dart/visualization/sdf_viz.h>
 
 #define EIGEN_DONT_ALIGN
 
