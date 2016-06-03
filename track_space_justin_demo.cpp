@@ -31,20 +31,21 @@
 #define EIGEN_DONT_ALIGN
 
 // switch depth sources
-//#define DEPTH_SOURCE_IMAGE // demo files
+#define DEPTH_SOURCE_IMAGE // demo files
 // read depth images from LCM topic
 //#define DEPTH_SOURCE_LCM
 // read depth (not disparity) images from MultiSense SL, use specific camera parameters
-#define DEPTH_SOURCE_IMAGE_MULTISENSE
-
-//#ifdef DEPTH_SOURCE_LCM
-//    #include <lcm_depth_provider/lcm_depth_provider.hpp>
-//    // workaround, cmake's target_link_libraries does not work
-//    #include <lcm_depth_provider/lcm_depth_provider.cpp>
-//#endif
+//#define DEPTH_SOURCE_IMAGE_MULTISENSE
 
 #ifdef DEPTH_SOURCE_LCM
     #include <depth_sources/lcm/lcm_depth_provider.hpp>
+#endif
+
+// FIXME: set by cmake
+#define ENABLE_URDF
+
+#ifdef ENABLE_URDF
+    #include <dart_urdf/read_model_urdf.h>
 #endif
 
 // switch use of contact information
@@ -292,6 +293,7 @@ int main() {
                      make_float3(-0.5*obsSdfSize*obsSdfResolution) + obsSdfOffset, //);
                      handPoseReduction);
 
+
     dart::PosePrior reportedPosePrior(tracker.getPose(0).getReducedDimensions());
     memset(reportedPosePrior.getWeights(),0,6*sizeof(float));
 
@@ -321,6 +323,33 @@ int main() {
                      obsSdfResolution,
                      make_float3(-0.5*obsSdfSize*obsSdfResolution) + obsSdfOffset,
                      handPoseReduction);
+
+    // add Valkyrie
+    dart::HostOnlyModel val;
+    std::string val_root;
+    val_root = "pelvis";
+    //val_root = "torso";
+    //val_root = "rightShoulderPitchLink";
+    //val_root = "leftShoulderPitchLink";
+    //val_root = "rightForearmLink";
+    //val_root = "rightElbowPitchLink";
+    //val_root = "rightForearmLink";
+    dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", val, val_root, "obj");
+
+    std::cout<<"found robot: "<<val.getName()<<std::endl;
+
+    tracker.addModel(val,
+                     0.01,    // modelSdfResolution, def = 0.002
+                     modelSdfPadding,       // modelSdfPadding, def = 0.07
+                     obsSdfSize,
+                     obsSdfResolution,
+                     make_float3(-0.5*obsSdfSize*obsSdfResolution) + obsSdfOffset,
+                     handPoseReduction,
+                     1e5,       // collisionCloudDensity
+                     true      // cacheSdfs
+                     );
+
+    std::cout<<"added models: "<<tracker.getNumModels()<<std::endl;
 
     std::vector<pangolin::Var<float> * *> poseVars;
 
