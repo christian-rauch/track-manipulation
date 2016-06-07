@@ -1145,7 +1145,7 @@ int main() {
             tracker.stepForward();
 
             const float * currentReportedPose = reportedJointAngles[depthSource->getFrame()];
-            const float * lastReportedPose = reportedJointAngles[depthSource->getFrame()-1];
+            const float * lastReportedPose = (depthSource->getFrame()==0) ? currentReportedPose :  reportedJointAngles[depthSource->getFrame()-1];
 
             memcpy(spaceJustinPose.getReducedArticulation(),lastReportedPose,spaceJustinPose.getReducedArticulatedDimensions()*sizeof(float));
             spaceJustinPose.projectReducedToFull();
