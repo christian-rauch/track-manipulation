@@ -382,7 +382,8 @@ int main() {
     }
 
     // pangolin variables
-    static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
+    //static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
+    static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
     static pangolin::Var<bool> stepVideo("ui.stepVideo",false,false);
     static pangolin::Var<bool> stepVideoBack("ui.stepVideoBack",false,false);
 
@@ -392,7 +393,8 @@ int main() {
     //static pangolin::Var<float> focalLength_y("ui.focalLength_y",depthSource->getFocalLength().y, 500, 1500);
     static pangolin::Var<bool> showCameraPose("ui.showCameraPose",false,true);
     static pangolin::Var<bool> showEstimatedPose("ui.showEstimate",true,true);
-    static pangolin::Var<bool> showReported("ui.showReported",false,true);
+    //static pangolin::Var<bool> showReported("ui.showReported",false,true);
+    static pangolin::Var<bool> showReported("ui.showReported",true,true);
 
     static pangolin::Var<bool> showTablePlane("ui.showTablePlane",false,true);
 
