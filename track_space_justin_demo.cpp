@@ -537,6 +537,10 @@ int main() {
     dart::Pose & leftHandPose = tracker.getPose(2);
     dart::Pose & objectPose = tracker.getPose(1);
 
+#ifdef ENABLE_URDF
+    dart::Pose val_pose = tracker.getPose("valkyrie");
+#endif
+
 
     // set up reported pose offsets
     std::vector<float *> reportedJointAngles;
@@ -552,8 +556,6 @@ int main() {
     dart::LCM_JointsProvider lcm_joints;
     lcm_joints.setJointNames(val);
     lcm_joints.initLCM("EST_ROBOT_STATE");
-    //lcm_joints.next();
-    //lcm_joints.getJointValues();
 #endif
 
     // -=-=-=-=- set up initial poses -=-=-=-=-
@@ -588,6 +590,11 @@ int main() {
         if (pangolin::HasResized()) {
             pangolin::DisplayBase().ActivateScissorAndClear();
         }
+
+#ifdef ENABLE_LCM_JOINTS
+        // get new joint data
+        lcm_joints.next(10);
+#endif
 
         static pangolin::Var<std::string> trackingModeStr("ui.mode");
         trackingModeStr = getTrackingModeString(trackingMode);
@@ -786,6 +793,14 @@ int main() {
             spaceJustinPose.projectReducedToFull();
             spaceJustin.setPose(spaceJustinPose);
             spaceJustin.renderWireframe();
+
+#ifdef ENABLE_URDF
+            // val
+            memcpy(val_pose.getReducedArticulation(), lcm_joints.getJointValues().data(), lcm_joints.getJointValues().size()*sizeof(float));
+            //val_pose.projectReducedToFull();
+            val.setPose(val_pose);
+            val.renderWireframe();
+#endif
 
             // glColor3ub(0,0,0);
             // glutSolidSphere(0.02,10,10);
@@ -1170,6 +1185,10 @@ int main() {
 
                 leftHandPose.setTransformModelToCamera(leftHand.getTransformModelToCamera()*update_l);
                 leftHand.setPose(leftHandPose);
+
+#ifdef ENABLE_URDF
+                val.setPose(val_pose);
+#endif
             }
 
             // apply finger joint deltas
