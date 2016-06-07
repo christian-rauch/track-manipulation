@@ -13,15 +13,26 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/dart/CMakeModu
 find_package(Pangolin REQUIRED)
 find_package(CUDA REQUIRED)
 
+
 # find packages with pkg-config
 find_package(PkgConfig)
 pkg_check_modules(eigen3 REQUIRED eigen3)
 pkg_check_modules(matheval REQUIRED libmatheval)
+pkg_search_module(lcm REQUIRED lcm)
+
+pkg_search_module(dart REQUIRED dart)
+pkg_search_module(dart_urdf REQUIRED dart_urdf)
+pkg_search_module(dart_lcm REQUIRED dart_lcm)
 
 
 include_directories(  ${Pangolin_INCLUDE_DIRS} )
 link_directories(     ${Pangolin_LIBRARY_DIRS} )
 link_libraries(       ${Pangolin_LIBRARIES}    )
+
+# DART installation
+include_directories(${dart_INCLUDEDIR}/dart)
+include_directories(${dart_urdf_INCLUDE_DIRS})
+include_directories(${dart_lcm_INCLUDE_DIRS})
 
 include_directories(
     ${eigen3_INCLUDE_DIR}
@@ -32,11 +43,20 @@ include_directories(
 link_directories(
     ${CMAKE_BINARY_DIR}
     ${PROJECT_SOURCE_DIR}/dart/lib
+    ${dart_LIBRARY_DIRS}
+    ${dart_urdf_LIBRARY_DIRS}
+    ${dart_lcm_LIBRARY_DIRS}
 )
 link_libraries(
     ${Pangolin_LIBRARIES}
     ${matheval_LIBRARIES}
 )
+
+# LCM
+#if(lcm_FOUND)
+#    include_directories(dart/src/depth_sources/lcm)
+#    link_libraries(${lcm_LIBRARIES})
+#endif()
 
 ##########################################################################
 #   Build GPU or CPU-only executable depending on cuda                   #
@@ -52,10 +72,10 @@ add_definitions(-DCUDA_BUILD)
 set(all_sources ${sources} ${cpu_sources} ${gpu_sources})
 link_directories( ${CUDA_TOOLKIT_ROOT_DIR}/lib64/)
 
-set(DART_ROOT ${PROJECT_SOURCE_DIR}/../dart CACHE PATH "path to the dart root directory")
-message(STATUS "dart is at ${DART_ROOT}")
-include_directories(${DART_ROOT}/src)
-link_directories(${DART_ROOT}/lib)
+#set(DART_ROOT ${PROJECT_SOURCE_DIR}/../dart CACHE PATH "path to the dart root directory")
+#message(STATUS "dart is at ${DART_ROOT}")
+#include_directories(${DART_ROOT}/src)
+#link_directories(${DART_ROOT}/lib)
 
 cuda_add_executable(
     #executable
@@ -65,6 +85,12 @@ cuda_add_executable(
     #main
     track_space_justin_demo.cpp
 )
-target_link_libraries(track_space_justin_demo dart)
+#target_link_libraries(track_space_justin_demo dart)
+target_link_libraries(track_space_justin_demo ${dart_LIBRARIES})
+target_link_libraries(track_space_justin_demo ${dart_urdf_LIBRARIES})
+target_link_libraries(track_space_justin_demo ${dart_lcm_LIBRARIES})
 
-
+#get_cmake_property(_variableNames VARIABLES)
+#foreach (_variableName ${_variableNames})
+#    message(STATUS "${_variableName}=${${_variableName}}")
+#endforeach()
