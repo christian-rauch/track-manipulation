@@ -43,9 +43,14 @@
 
 // FIXME: set by cmake
 #define ENABLE_URDF
+#define ENABLE_LCM_JOINTS
 
 #ifdef ENABLE_URDF
     #include <dart_urdf/read_model_urdf.h>
+#endif
+
+#ifdef ENABLE_LCM_JOINTS
+    #include <dart_lcm/dart_lcm_joints.hpp>
 #endif
 
 // switch use of contact information
@@ -324,6 +329,7 @@ int main() {
                      make_float3(-0.5*obsSdfSize*obsSdfResolution) + obsSdfOffset,
                      handPoseReduction);
 
+#ifdef ENABLE_URDF
     // add Valkyrie
     dart::HostOnlyModel val;
     std::string val_root;
@@ -344,10 +350,11 @@ int main() {
                      obsSdfSize,
                      obsSdfResolution,
                      make_float3(-0.5*obsSdfSize*obsSdfResolution) + obsSdfOffset,
-                     handPoseReduction,
-                     1e5,       // collisionCloudDensity
+                     0,         // poseReduction
+                     1e5,       // collisionCloudDensity (def = 1e5)
                      true      // cacheSdfs
                      );
+#endif
 
     std::cout<<"added models: "<<tracker.getNumModels()<<std::endl;
 
@@ -540,6 +547,14 @@ int main() {
 #endif
 
     std::cout << "loaded " << reportedJointAngles.size() << " frames" << std::endl;
+
+#ifdef ENABLE_LCM_JOINTS
+    dart::LCM_JointsProvider lcm_joints;
+    lcm_joints.setJointNames(val);
+    lcm_joints.initLCM("EST_ROBOT_STATE");
+    //lcm_joints.next();
+    //lcm_joints.getJointValues();
+#endif
 
     // -=-=-=-=- set up initial poses -=-=-=-=-
     spaceJustinPose.setTransformModelToCamera(initialT_cj);

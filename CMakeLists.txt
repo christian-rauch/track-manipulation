@@ -22,6 +22,7 @@ pkg_search_module(lcm REQUIRED lcm)
 
 pkg_search_module(dart REQUIRED dart)
 pkg_search_module(dart_urdf REQUIRED dart_urdf)
+pkg_search_module(dart_lcm REQUIRED dart_lcm)
 
 
 include_directories(  ${Pangolin_INCLUDE_DIRS} )
@@ -29,8 +30,9 @@ link_directories(     ${Pangolin_LIBRARY_DIRS} )
 link_libraries(       ${Pangolin_LIBRARIES}    )
 
 # DART installation
-include_directories(${dart_INCLUDE_DIRS}/dart)
+include_directories(${dart_INCLUDEDIR}/dart)
 include_directories(${dart_urdf_INCLUDE_DIRS})
+include_directories(${dart_lcm_INCLUDE_DIRS})
 
 include_directories(
     ${eigen3_INCLUDE_DIR}
@@ -43,6 +45,7 @@ link_directories(
     ${PROJECT_SOURCE_DIR}/dart/lib
     ${dart_LIBRARY_DIRS}
     ${dart_urdf_LIBRARY_DIRS}
+    ${dart_lcm_LIBRARY_DIRS}
 )
 link_libraries(
     ${Pangolin_LIBRARIES}
@@ -50,10 +53,10 @@ link_libraries(
 )
 
 # LCM
-if(lcm_FOUND)
-    include_directories(dart/src/depth_sources/lcm)
-    link_libraries(${lcm_LIBRARIES})
-endif()
+#if(lcm_FOUND)
+#    include_directories(dart/src/depth_sources/lcm)
+#    link_libraries(${lcm_LIBRARIES})
+#endif()
 
 ##########################################################################
 #   Build GPU or CPU-only executable depending on cuda                   #
@@ -85,3 +88,9 @@ cuda_add_executable(
 #target_link_libraries(track_space_justin_demo dart)
 target_link_libraries(track_space_justin_demo ${dart_LIBRARIES})
 target_link_libraries(track_space_justin_demo ${dart_urdf_LIBRARIES})
+target_link_libraries(track_space_justin_demo ${dart_lcm_LIBRARIES})
+
+#get_cmake_property(_variableNames VARIABLES)
+#foreach (_variableName ${_variableNames})
+#    message(STATUS "${_variableName}=${${_variableName}}")
+#endforeach()
