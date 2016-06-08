@@ -37,6 +37,8 @@
 // read depth (not disparity) images from MultiSense SL, use specific camera parameters
 //#define DEPTH_SOURCE_IMAGE_MULTISENSE
 
+//#define DEPTH_SOURCE_IMAGE_TEST
+
 #ifdef DEPTH_SOURCE_LCM
     #include <depth_sources/lcm/lcm_depth_provider.hpp>
 #endif
@@ -255,6 +257,12 @@ int main() {
 //                            true,videoLoc+"/color",dart::IMAGE_PNG,320,240);
 
     // ----
+#endif
+
+#ifdef DEPTH_SOURCE_IMAGE_TEST
+    dart::ImageDepthSource<uint16_t,uchar3> * depthSource = new dart::ImageDepthSource<uint16_t,uchar3>();
+    depthSource->initialize("../test_video/",dart::IMAGE_PNG, make_float2(525/2,525/2),make_float2(320,240), 640,480,0.001);
+    //depthSource->initialize("../test_video2/",dart::IMAGE_PNG, make_float2(525/2,525/2),make_float2(2,2), 5,4,0.001);
 #endif
 
 #ifdef DEPTH_SOURCE_IMAGE_MULTISENSE
