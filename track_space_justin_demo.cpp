@@ -392,7 +392,8 @@ int main() {
     static pangolin::Var<float> focalLength("ui.focalLength",depthSource->getFocalLength().x,0.8*depthSource->getFocalLength().x,1.2*depthSource->getFocalLength().x);//475,525); //525.0,450.0,600.0);
     //static pangolin::Var<float> focalLength_y("ui.focalLength_y",depthSource->getFocalLength().y, 500, 1500);
     static pangolin::Var<bool> showCameraPose("ui.showCameraPose",false,true);
-    static pangolin::Var<bool> showEstimatedPose("ui.showEstimate",true,true);
+    //static pangolin::Var<bool> showEstimatedPose("ui.showEstimate",true,true);
+    static pangolin::Var<bool> showEstimatedPose("ui.showEstimate",false,true);
     //static pangolin::Var<bool> showReported("ui.showReported",false,true);
     static pangolin::Var<bool> showReported("ui.showReported",true,true);
 
@@ -747,6 +748,11 @@ int main() {
 
         glPushMatrix();
 
+        // draw coordinates axes, x: red, y: green, z: blue
+        pangolin::glDrawAxis(0.5);
+        glColor3f(0,0,1);
+        pangolin::glDraw_z0(0.01, 10);
+
         if (showCameraPose) {
 
             glColor3f(0,0,0);
@@ -791,6 +797,8 @@ int main() {
 
         if (showReported) {
             glColor3ub(0xfa,0x85,0x7c);
+            glEnable(GL_COLOR_MATERIAL);
+
             memcpy(spaceJustinPose.getReducedArticulation(),reportedJointAngles[depthSource->getFrame()],spaceJustinPose.getReducedArticulatedDimensions()*sizeof(float));
             spaceJustinPose.projectReducedToFull();
             spaceJustin.setPose(spaceJustinPose);
@@ -798,7 +806,9 @@ int main() {
 
 #ifdef ENABLE_URDF
             // val
+#ifdef ENABLE_LCM_JOINTS
             memcpy(val_pose.getReducedArticulation(), lcm_joints.getJointValues().data(), lcm_joints.getJointValues().size()*sizeof(float));
+#endif
             //val_pose.projectReducedToFull();
             val.setPose(val_pose);
             val.renderWireframe();
