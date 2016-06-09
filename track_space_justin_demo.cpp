@@ -31,16 +31,16 @@
 #define EIGEN_DONT_ALIGN
 
 // switch depth sources
-#define DEPTH_SOURCE_IMAGE // demo files
+//#define DEPTH_SOURCE_IMAGE // demo files
 // read depth images from LCM topic
-//#define DEPTH_SOURCE_LCM
+#define DEPTH_SOURCE_LCM
 // read depth (not disparity) images from MultiSense SL, use specific camera parameters
 //#define DEPTH_SOURCE_IMAGE_MULTISENSE
 
 //#define DEPTH_SOURCE_IMAGE_TEST
 
 #ifdef DEPTH_SOURCE_LCM
-    #include <depth_sources/lcm/lcm_depth_provider.hpp>
+    #include <dart_lcm/dart_lcm_depth_provider.hpp>
 #endif
 
 // FIXME: set by cmake
@@ -273,7 +273,7 @@ int main() {
 
 #ifdef DEPTH_SOURCE_LCM
     // Valkyrie Unit D, MultiSense SL
-    StereoCameraParameter val_multisense;
+    dart::StereoCameraParameter val_multisense;
     val_multisense.focal_length = make_float2(556.183166504, 556.183166504);
     val_multisense.camera_center = make_float2(512, 512);
     val_multisense.baseline = 0.07;
@@ -281,9 +281,9 @@ int main() {
     val_multisense.height = 1024;
     val_multisense.subpixel_resolution = 1.0/16.0;
 
-    LCM_DepthSource<float,uchar3> *depthSource = new LCM_DepthSource<float,uchar3>(val_multisense);
+    dart::LCM_DepthSource<float,uchar3> *depthSource = new dart::LCM_DepthSource<float,uchar3>(val_multisense);
 
-    depthSource->initLCM("CAMERA");
+    depthSource->initLCM("CAMERA", 1);
 #endif
 
     tracker.addDepthSource(depthSource);
