@@ -353,6 +353,9 @@ int main() {
 
     std::cout<<"found robot: "<<val.getName()<<std::endl;
 
+    // joints/frame IDs for finding transformations
+    const int val_cam_frame_id = val.getJointIdByName("left_camera_optical_frame_joint");
+
     tracker.addModel(val,
                      0.01,    // modelSdfResolution, def = 0.002
                      modelSdfPadding,       // modelSdfPadding, def = 0.07
@@ -819,8 +822,7 @@ int main() {
             memcpy(val_pose.getReducedArticulation(), lcm_joints.getJointValues().data(), lcm_joints.getJointValues().size()*sizeof(float));
             dart::SE3 Twr = lcm_joints.getTransformWorldToRobot();  // world to robot
 #endif
-            //val_pose.projectReducedToFull();
-            dart::SE3 Tmc = val.getTransformModelToFrame(54); // left_camera_optical_frame_joint
+            dart::SE3 Tmc = val.getTransformModelToFrame(val_cam_frame_id); // left_camera_optical_frame_joint
             //dart::SE3 Twc = Twr*Tmc;    // world to camera
             //val_pose.setTransformModelToCamera(Twc); // world to camera?
             // camera to image, rotate around X, then around Z
