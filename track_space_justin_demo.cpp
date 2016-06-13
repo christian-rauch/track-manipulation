@@ -176,6 +176,18 @@ void loadReportedContacts(std::string contactFile, std::vector<int *> & contacts
     contactStream.close();
 }
 
+dart::Pose nullReductionPose(const dart::HostOnlyModel &model) {
+    std::vector<float> jointMins, jointMaxs;
+    std::vector<std::string> jointNames;
+    for (int j=0; j<model.getNumJoints(); ++j) {
+        jointMins.push_back(model.getJointMin(j));
+        jointMaxs.push_back(model.getJointMax(j));
+        jointNames.push_back(model.getJointName(j));
+    }
+    return dart::Pose(new dart::NullReduction(model.getNumJoints(),
+                    jointMins.data(), jointMaxs.data(), jointNames.data()));
+}
+
 static const dart::SE3 initialT_cj(make_float4(-0.476295, -0.0945505, -0.874187, -0.22454),
                                    make_float4(-0.625852, 0.734788, 0.26152, -0.305038   ),
                                    make_float4(0.617613, 0.671677, -0.409147, -0.105219  ));
