@@ -352,7 +352,6 @@ int main() {
 
 #ifdef ENABLE_URDF
     // add Valkyrie
-    dart::HostOnlyModel val;
     std::string val_root;
     val_root = "pelvis";
     //val_root = "torso";
@@ -361,14 +360,20 @@ int main() {
     //val_root = "rightForearmLink";
     //val_root = "rightElbowPitchLink";
     //val_root = "rightForearmLink";
-    dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", val, val_root, "obj");
+    dart::HostOnlyModel val = dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", val_root, "obj");
 
     std::cout<<"found robot: "<<val.getName()<<std::endl;
 
+    dart::Pose val_pose = nullReductionPose(val);
+
     // joints/frame IDs for finding transformations
     const int val_cam_frame_id = val.getJointIdByName("left_camera_optical_frame_joint");
+    const int val_torso_frame_id = val.getJointIdByName("torsoRoll");
 
-    tracker.addModel(val,
+    // track subparts of Valkyrie
+    dart::HostOnlyModel val_torso = dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", "torso", "obj");
+
+    tracker.addModel(val_torso,
                      0.01,    // modelSdfResolution, def = 0.002
                      modelSdfPadding,       // modelSdfPadding, def = 0.07
                      obsSdfSize,
@@ -406,8 +411,8 @@ int main() {
     }
 
     // pangolin variables
-    //static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
-    static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
+    static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
+    //static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
     static pangolin::Var<bool> stepVideo("ui.stepVideo",false,false);
     static pangolin::Var<bool> stepVideoBack("ui.stepVideoBack",false,false);
 
@@ -416,8 +421,8 @@ int main() {
     static pangolin::Var<float> focalLength("ui.focalLength",depthSource->getFocalLength().x,0.8*depthSource->getFocalLength().x,1.2*depthSource->getFocalLength().x);//475,525); //525.0,450.0,600.0);
     //static pangolin::Var<float> focalLength_y("ui.focalLength_y",depthSource->getFocalLength().y, 500, 1500);
     static pangolin::Var<bool> showCameraPose("ui.showCameraPose",false,true);
-    //static pangolin::Var<bool> showEstimatedPose("ui.showEstimate",true,true);
-    static pangolin::Var<bool> showEstimatedPose("ui.showEstimate",false,true);
+    static pangolin::Var<bool> showEstimatedPose("ui.showEstimate",true,true);
+    //static pangolin::Var<bool> showEstimatedPose("ui.showEstimate",false,true);
     //static pangolin::Var<bool> showReported("ui.showReported",false,true);
     static pangolin::Var<bool> showReported("ui.showReported",true,true);
 
@@ -565,7 +570,8 @@ int main() {
     dart::Pose & objectPose = tracker.getPose(1);
 
 #ifdef ENABLE_URDF
-    dart::Pose val_pose = tracker.getPose("valkyrie");
+    //dart::Pose val_pose = tracker.getPose("valkyrie");
+    //dart::Pose val_torso_pose = tracker.getPose("valkyrie");
 #endif
 
 
@@ -580,9 +586,11 @@ int main() {
     std::cout << "loaded " << reportedJointAngles.size() << " frames" << std::endl;
 
 #ifdef ENABLE_LCM_JOINTS
+    // measures joint values for reported robot configuration
     dart::LCM_JointsProvider lcm_joints;
     lcm_joints.setJointNames(val);
     lcm_joints.initLCM("EST_ROBOT_STATE");
+    lcm_joints.next(100); // wait for initial configuration
 #endif
 
     // -=-=-=-=- set up initial poses -=-=-=-=-
@@ -598,6 +606,12 @@ int main() {
     leftHandPose.setTransformModelToCamera(spaceJustin.getTransformFrameToCamera(leftPalmFrame)*T_wh);
     memcpy(leftHandPose.getReducedArticulation(),spaceJustinPose.getReducedArticulation() + 7 + 15 + 7,leftHandPose.getReducedArticulatedDimensions()*sizeof(float));
     leftHand.setPose(leftHandPose);
+
+    //val_torso.computeStructure();
+    //val_torso_pose.setTransformCameraToModel(val.getTransformModelToFrame(val_torso_frame_id));
+    //val_torso_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
+    //val_torso_pose.setTransformModelToCamera(dart::SE3FromRotationX(M_PI/2.0)*dart::SE3FromRotationY(M_PI/2.0));
+    //val_torso.setPose(val_torso_pose);
 
     const dart::SE3 T_camera_head = spaceJustin.getTransformFrameToCamera(headFrame);
 
@@ -619,7 +633,7 @@ int main() {
         }
 
 #ifdef ENABLE_LCM_JOINTS
-        // get new joint data
+        // get new joint data for reported robot state
         lcm_joints.next(1);
 #endif
 
@@ -829,9 +843,9 @@ int main() {
             spaceJustin.renderWireframe();
 
 #ifdef ENABLE_URDF
-            // val
+            // render Valkyrie reported state as wireframe model, origin is the camera centre
 #ifdef ENABLE_LCM_JOINTS
-            memcpy(val_pose.getReducedArticulation(), lcm_joints.getJointValues().data(), lcm_joints.getJointValues().size()*sizeof(float));
+            val_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
             dart::SE3 Twr = lcm_joints.getTransformWorldToRobot();  // world to robot
 #endif
             dart::SE3 Tmc = val.getTransformModelToFrame(val_cam_frame_id); // left_camera_optical_frame_joint
@@ -1228,10 +1242,6 @@ int main() {
 
                 leftHandPose.setTransformModelToCamera(leftHand.getTransformModelToCamera()*update_l);
                 leftHand.setPose(leftHandPose);
-
-#ifdef ENABLE_URDF
-                val.setPose(val_pose);
-#endif
             }
 
             // apply finger joint deltas
