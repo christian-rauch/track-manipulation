@@ -43,7 +43,7 @@
     #include <dart_lcm/dart_lcm_depth_provider.hpp>
 #endif
 
-#define ENABLE_JUSTIN
+//#define ENABLE_JUSTIN
 
 // FIXME: set by cmake
 #define ENABLE_URDF
@@ -368,7 +368,9 @@ int main() {
 
     std::cout<<"found robot: "<<val.getName()<<std::endl;
 
+    // initialize pose with 0 joint values and no full to reduced mapping
     dart::Pose val_pose = nullReductionPose(val);
+    val_pose.zero();
 
     // joints/frame IDs for finding transformations
     const int val_cam_frame_id = val.getJointIdByName("left_camera_optical_frame_joint");
@@ -578,8 +580,9 @@ int main() {
 #endif
 
 #ifdef ENABLE_URDF
+    // get references to model and its pose for tracking
+    dart::MirroredModel & val_torso_mm = tracker.getModel(tracker.getModelIDbyName("valkyrie"));
     dart::Pose & val_torso_pose = tracker.getPose("valkyrie");
-    //dart::Pose & val_pose = tracker.getPose("valkyrie");
 #endif
 
 
@@ -617,11 +620,18 @@ int main() {
     leftHand.setPose(leftHandPose);
 #endif
 
+#ifdef ENABLE_URDF
+    // set initial state of tracked model
+    val_torso_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
     //val_torso_pose.setTransformModelToCamera(val.getTransformFrameToCamera(0));
-    //val_torso_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
+    dart::SE3 Tmc = val_torso_mm.getTransformModelToFrame(val_cam_frame_id);
+    dart::SE3 Tci = dart::SE3FromRotationX(M_PI/2)*dart::SE3FromRotationZ(M_PI/2);
+    val_torso_pose.setTransformModelToCamera(Tci*Tmc);
+    //val_torso_pose.setTransformModelToCamera(Tmc);
     //val_torso_pose.setTransformModelToCamera(dart::SE3FromRotationX(M_PI/2.0)*dart::SE3FromRotationY(M_PI/2.0));
     //val_torso_pose.setTransformModelToCamera(val.getTransformModelToFrame(val_cam_frame_id));
-    //val_torso.setPose(val_torso_pose);
+    val_torso_mm.setPose(val_torso_pose);
+#endif
 
 //    memcpy(val_pose.getReducedArticulation(), lcm_joints.getJointValues().data(), val_pose.getReducedArticulatedDimensions()*sizeof(float));
 //    //val_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
