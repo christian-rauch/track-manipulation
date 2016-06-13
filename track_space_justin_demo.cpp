@@ -43,6 +43,8 @@
     #include <dart_lcm/dart_lcm_depth_provider.hpp>
 #endif
 
+#define ENABLE_JUSTIN
+
 // FIXME: set by cmake
 #define ENABLE_URDF
 #define ENABLE_LCM_JOINTS
@@ -309,6 +311,7 @@ int main() {
     pangolin::Var<float> modelSdfResolution("lim.modelSdfResolution",defaultModelSdfResolution,defaultModelSdfResolution/2,defaultModelSdfResolution*2);
     pangolin::Var<float> modelSdfPadding("lim.modelSdfPadding",defaultModelSdfPadding,defaultModelSdfPadding/2,defaultModelSdfPadding*2);
 
+#ifdef ENABLE_JUSTIN
     dart::ParamMapPoseReduction * handPoseReduction = dart::loadParamMapPoseReduction("../models/spaceJustin/justinHandParamMap.txt");
 
     tracker.addModel("../models/spaceJustin/spaceJustinHandRight.xml",
@@ -349,6 +352,7 @@ int main() {
                      obsSdfResolution,
                      make_float3(-0.5*obsSdfSize*obsSdfResolution) + obsSdfOffset,
                      handPoseReduction);
+#endif
 
 #ifdef ENABLE_URDF
     // add Valkyrie
@@ -371,7 +375,8 @@ int main() {
     const int val_torso_frame_id = val.getJointIdByName("torsoRoll");
 
     // track subparts of Valkyrie
-    dart::HostOnlyModel val_torso = dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", "torso", "obj");
+    //dart::HostOnlyModel val_torso = dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", "torso", "obj");
+    dart::HostOnlyModel val_torso = dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", "pelvis", "obj");
 
     tracker.addModel(val_torso,
                      0.01,    // modelSdfResolution, def = 0.002
@@ -548,6 +553,7 @@ int main() {
     }
 #endif
 
+#ifdef ENABLE_JUSTIN
     // set up potential intersections
     {
 
@@ -559,8 +565,9 @@ int main() {
         delete [] selfIntersectionMatrix;
 
     }
+#endif
 
-
+#ifdef ENABLE_JUSTIN
     dart::MirroredModel & rightHand = tracker.getModel(0);
     dart::MirroredModel & leftHand = tracker.getModel(2);
     dart::MirroredModel & object = tracker.getModel(1);
@@ -568,10 +575,11 @@ int main() {
     dart::Pose & rightHandPose = tracker.getPose(0);
     dart::Pose & leftHandPose = tracker.getPose(2);
     dart::Pose & objectPose = tracker.getPose(1);
+#endif
 
 #ifdef ENABLE_URDF
-    //dart::Pose val_pose = tracker.getPose("valkyrie");
-    //dart::Pose val_torso_pose = tracker.getPose("valkyrie");
+    dart::Pose & val_torso_pose = tracker.getPose("valkyrie");
+    //dart::Pose & val_pose = tracker.getPose("valkyrie");
 #endif
 
 
@@ -594,6 +602,7 @@ int main() {
 #endif
 
     // -=-=-=-=- set up initial poses -=-=-=-=-
+#ifdef ENABLE_JUSTIN
     spaceJustinPose.setTransformModelToCamera(initialT_cj);
     memcpy(spaceJustinPose.getReducedArticulation(),reportedJointAngles[depthSource->getFrame()],spaceJustinPose.getReducedArticulatedDimensions()*sizeof(float));
     spaceJustinPose.projectReducedToFull();
@@ -606,24 +615,33 @@ int main() {
     leftHandPose.setTransformModelToCamera(spaceJustin.getTransformFrameToCamera(leftPalmFrame)*T_wh);
     memcpy(leftHandPose.getReducedArticulation(),spaceJustinPose.getReducedArticulation() + 7 + 15 + 7,leftHandPose.getReducedArticulatedDimensions()*sizeof(float));
     leftHand.setPose(leftHandPose);
+#endif
 
-    //val_torso.computeStructure();
-    //val_torso_pose.setTransformCameraToModel(val.getTransformModelToFrame(val_torso_frame_id));
+    //val_torso_pose.setTransformModelToCamera(val.getTransformFrameToCamera(0));
     //val_torso_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
     //val_torso_pose.setTransformModelToCamera(dart::SE3FromRotationX(M_PI/2.0)*dart::SE3FromRotationY(M_PI/2.0));
+    //val_torso_pose.setTransformModelToCamera(val.getTransformModelToFrame(val_cam_frame_id));
     //val_torso.setPose(val_torso_pose);
 
+//    memcpy(val_pose.getReducedArticulation(), lcm_joints.getJointValues().data(), val_pose.getReducedArticulatedDimensions()*sizeof(float));
+//    //val_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
+//    dart::SE3 Tmc = val.getTransformModelToFrame(val_cam_frame_id); // left_camera_optical_frame_joint
+//    dart::SE3 Tci = dart::SE3FromRotationX(M_PI/2)*dart::SE3FromRotationZ(M_PI/2);
+//    val_pose.setTransformModelToCamera(Tci*Tmc);    // robot to image
+//    val.setPose(val_pose);
+
+#ifdef ENABLE_JUSTIN
     const dart::SE3 T_camera_head = spaceJustin.getTransformFrameToCamera(headFrame);
 
     objectPose.setTransformModelToCamera(initialT_co);
     object.setPose(objectPose);
 
-    TrackingMode trackingMode = ModeObjOnTable;
-
     if ( isnan(spaceJustinPose.getArticulation()[0])) {
         std::cerr << "???" << std::endl;
         spaceJustinPose.projectReducedToFull();
     }
+#endif
+    TrackingMode trackingMode = ModeObjOnTable;
 
     // ------------------- main loop ---------------------
     for (int pangolinFrame=1; !pangolin::ShouldQuit(); ++pangolinFrame) {
@@ -837,10 +855,12 @@ int main() {
             glColor3ub(0xfa,0x85,0x7c);
             glEnable(GL_COLOR_MATERIAL);
 
+#ifdef ENABLE_JUSTIN
             memcpy(spaceJustinPose.getReducedArticulation(),reportedJointAngles[depthSource->getFrame()],spaceJustinPose.getReducedArticulatedDimensions()*sizeof(float));
             spaceJustinPose.projectReducedToFull();
             spaceJustin.setPose(spaceJustinPose);
             spaceJustin.renderWireframe();
+#endif
 
 #ifdef ENABLE_URDF
             // render Valkyrie reported state as wireframe model, origin is the camera centre
@@ -1199,6 +1219,7 @@ int main() {
 
             tracker.stepForward();
 
+#ifdef ENABLE_JUSTIN
             const float * currentReportedPose = reportedJointAngles[depthSource->getFrame()];
             const float * lastReportedPose = (depthSource->getFrame()==0) ? currentReportedPose :  reportedJointAngles[depthSource->getFrame()-1];
 
@@ -1273,6 +1294,7 @@ int main() {
                 object.setPose(objectPose);
 
             }
+#endif
 
 #ifdef USE_CONTACT_PRIOR
             // update contact vars
@@ -1285,6 +1307,7 @@ int main() {
             }
 #endif
 
+#ifdef ENABLE_JUSTIN
             // update table based on head movement
             {
                 float4 tableNorm = make_float4(normalize(make_float3(tableNormX,tableNormY,tableNormZ)),0.f);
@@ -1296,6 +1319,7 @@ int main() {
                 tableNormZ = tableNorm.z;
                 tableIntercept = dot(make_float3(tablePoint),make_float3(tableNorm));
             }
+#endif
 
             static pangolin::Var<float> planeFitNormThresh("opt.planeNormThresh",0.25,-1,1);
             static pangolin::Var<float> planeFitDistThresh("opt.planeDistThresh",0.005,0.0001,0.005);

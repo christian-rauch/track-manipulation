@@ -7,6 +7,8 @@ endif()
 
 add_definitions(-std=c++11)
 
+#add_definitions ("-Wall")
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/dart/CMakeModules/")
 
 # find packages with modules
