@@ -377,8 +377,10 @@ int main() {
     const int val_torso_frame_id = val.getJointIdByName("torsoRoll");
 
     // track subparts of Valkyrie
-    //dart::HostOnlyModel val_torso = dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", "torso", "obj");
-    dart::HostOnlyModel val_torso = dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", "pelvis", "obj");
+    dart::HostOnlyModel val_torso = dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", "torso", "obj");
+    //dart::HostOnlyModel val_torso = dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", "pelvis", "obj");
+
+    const int val_torso_cam_frame_id = val_torso.getJointIdByName("left_camera_optical_frame_joint");
 
     tracker.addModel(val_torso,
                      0.01,    // modelSdfResolution, def = 0.002
@@ -423,7 +425,7 @@ int main() {
     static pangolin::Var<bool> stepVideo("ui.stepVideo",false,false);
     static pangolin::Var<bool> stepVideoBack("ui.stepVideoBack",false,false);
 
-    static pangolin::Var<bool> initPose("ui.initPose",false,false);
+    static pangolin::Var<bool> resetRobotPose("ui.resetRobotPose",false,false);
     static pangolin::Var<bool> useReportedPose("ui.useReportedPose",false,true);
 
     static pangolin::Var<float> sigmaPixels("ui.sigmaPixels",3.0,0.01,4);
@@ -627,7 +629,7 @@ int main() {
     // set initial state of tracked model
     val_torso_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
     val_torso_mm.setPose(val_torso_pose);
-    dart::SE3 Tmc = val_torso_mm.getTransformModelToFrame(val_cam_frame_id);
+    dart::SE3 Tmc = val_torso_mm.getTransformModelToFrame(val_torso_cam_frame_id);
     dart::SE3 Tci = dart::SE3FromRotationX(M_PI/2)*dart::SE3FromRotationZ(M_PI/2);
     val_torso_pose.setTransformModelToCamera(Tci*Tmc);
 #endif
@@ -665,13 +667,12 @@ int main() {
 #endif
 #endif
 
-        if(pangolin::Pushed(initPose) || useReportedPose) {
+        if(pangolin::Pushed(resetRobotPose) || useReportedPose) {
             val_torso_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
-            val_torso_mm.setPose(val_pose);
-            dart::SE3 Tmc = val_torso_mm.getTransformModelToFrame(val_cam_frame_id);
+            val_torso_mm.setPose(val_torso_pose);
+            dart::SE3 Tmc = val_torso_mm.getTransformModelToFrame(val_torso_cam_frame_id);
             dart::SE3 Tci = dart::SE3FromRotationX(M_PI/2)*dart::SE3FromRotationZ(M_PI/2);
             val_torso_pose.setTransformModelToCamera(Tci*Tmc);
-            //val_torso_mm.setPose(val_pose);
         }
 
         static pangolin::Var<std::string> trackingModeStr("ui.mode");
