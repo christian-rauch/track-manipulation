@@ -43,7 +43,7 @@
     #include <dart_lcm/dart_lcm_depth_provider.hpp>
 #endif
 
-#define ENABLE_JUSTIN
+//#define ENABLE_JUSTIN
 
 // FIXME: set by cmake
 #define ENABLE_URDF
@@ -336,6 +336,7 @@ int main() {
 
     dart::Pose spaceJustinPose(justinPoseReduction);
 //    std::cout << spaceJustinPose.getReducedArticulatedDimensions() << " full justin articulated dimensions" << std::endl;
+#endif
 
     tracker.addModel(objectModelFile,
                      0.5*modelSdfResolution,
@@ -344,6 +345,7 @@ int main() {
 //                     objObsSdfRes,
 //                     objObsSdfOffset);
 
+#ifdef ENABLE_JUSTIN
     tracker.addModel("../models/spaceJustin/spaceJustinHandLeft.xml",
                      //"../models/spaceJustinArms.xml",
                      //0.1,
