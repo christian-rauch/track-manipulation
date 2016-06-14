@@ -121,6 +121,7 @@ void setSlidersFromTransform(const dart::SE3& transform, pangolin::Var<float>** 
     dart::SE3 mutableTransform = transform;
     setSlidersFromTransform(mutableTransform,sliders);
 }
+#ifdef ENABLE_JUSTIN
 const static dart::SE3 T_wh = dart::SE3FromRotationY(M_PI)*dart::SE3FromRotationX(-M_PI_2)*dart::SE3FromTranslation(make_float3(0,0,0.138));//dart::SE3Fromse3(dart::se3(0,0,0.1,0,2.22144,2.22144)); //dart::SE3art::SE3Fromse3(dart::se3(0, 0.108385,-0.108385, 1.5708, 0, 0)); // = dart::SE3Invert(dart::SE3Fromse3(dart::se3(0, 0.115, -0.115, 1.5708, 0, 0)));
 const static dart::SE3 T_hw = dart::SE3Invert(T_wh);
 const static dart::SE3 T_wc = dart::SE3FromTranslation(make_float3(-0.2,0.8,0))*
@@ -177,6 +178,7 @@ void loadReportedContacts(std::string contactFile, std::vector<int *> & contacts
 
     contactStream.close();
 }
+#endif
 
 dart::Pose nullReductionPose(const dart::HostOnlyModel &model) {
     std::vector<float> jointMins, jointMaxs;
@@ -190,6 +192,7 @@ dart::Pose nullReductionPose(const dart::HostOnlyModel &model) {
                     jointMins.data(), jointMaxs.data(), jointNames.data()));
 }
 
+#ifdef ENABLE_JUSTIN
 static const dart::SE3 initialT_cj(make_float4(-0.476295, -0.0945505, -0.874187, -0.22454),
                                    make_float4(-0.625852, 0.734788, 0.26152, -0.305038   ),
                                    make_float4(0.617613, 0.671677, -0.409147, -0.105219  ));
@@ -197,17 +200,20 @@ static const dart::SE3 initialT_cj(make_float4(-0.476295, -0.0945505, -0.874187,
 static const dart::SE3 initialT_co(make_float4(0.262348, -0.955909, -0.131952, 0.0238097),
                                    make_float4(-0.620357, -0.271813, 0.735714, -0.178571),
                                    make_float4(-0.739142, -0.111156, -0.664314, 0.702381));
+#endif
 
 static float3 initialTableNorm = make_float3(0.0182391, 0.665761, -0.745942);
 static float initialTableIntercept = -0.705196;
 
 int main() {
 
+#ifdef ENABLE_JUSTIN
     const std::string objectModelFile = "../models/ikeaMug/ikeaMug.xml";
     const float objObsSdfRes = 0.0025;
     const float3 objObsSdfOffset = make_float3(0,0,0);
 
     const std::string videoLoc = "../video/";
+#endif
 
     // -=-=-=- initializations -=-=-=-
     cudaSetDevice(0);
@@ -336,7 +342,6 @@ int main() {
 
     dart::Pose spaceJustinPose(justinPoseReduction);
 //    std::cout << spaceJustinPose.getReducedArticulatedDimensions() << " full justin articulated dimensions" << std::endl;
-#endif
 
     tracker.addModel(objectModelFile,
                      0.5*modelSdfResolution,
@@ -345,7 +350,6 @@ int main() {
 //                     objObsSdfRes,
 //                     objObsSdfOffset);
 
-#ifdef ENABLE_JUSTIN
     tracker.addModel("../models/spaceJustin/spaceJustinHandLeft.xml",
                      //"../models/spaceJustinArms.xml",
                      //0.1,
@@ -395,6 +399,10 @@ int main() {
                      1e5,       // collisionCloudDensity (def = 1e5)
                      true      // cacheSdfs
                      );
+
+    dart::HostOnlyModel bottle = dart::readModelURDF("../models/bottle/bottle.urdf");
+
+    tracker.addModel(bottle, 0.5*modelSdfResolution, modelSdfPadding, 64);
 #endif
 
     std::cout<<"added models: "<<tracker.getNumModels()<<std::endl;
@@ -594,15 +602,20 @@ int main() {
 #endif
 
 
+#ifdef ENABLE_JUSTIN
     // set up reported pose offsets
     std::vector<float *> reportedJointAngles;
     loadReportedJointAngles(videoLoc+"/reportedJointAngles.txt", reportedJointAngles);
+#endif
+
 #ifdef USE_CONTACT_PRIOR
     std::vector<int *> reportedContacts;
     loadReportedContacts(videoLoc+"/reportedContacts.txt", reportedContacts);
 #endif
 
+#ifdef ENABLE_JUSTIN
     std::cout << "loaded " << reportedJointAngles.size() << " frames" << std::endl;
+#endif
 
 #ifdef ENABLE_LCM_JOINTS
     // measures joint values for reported robot configuration
