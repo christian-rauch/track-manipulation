@@ -43,7 +43,7 @@
     #include <dart_lcm/dart_lcm_depth_provider.hpp>
 #endif
 
-//#define ENABLE_JUSTIN
+#define ENABLE_JUSTIN
 
 // FIXME: set by cmake
 #define ENABLE_URDF
@@ -232,7 +232,8 @@ int main() {
     int glPPy = glHeight/2;
     //pangolin::OpenGlMatrixSpec glK = pangolin::ProjectionMatrixRDF_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
     pangolin::OpenGlMatrixSpec glK = pangolin::ProjectionMatrixRUB_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
-    pangolin::OpenGlRenderState camState(glK);
+    pangolin::OpenGlMatrix viewpoint = pangolin::ModelViewLookAt(0, 0, 0.05, 0, -0.1, 0.2, pangolin::AxisY);
+    pangolin::OpenGlRenderState camState(glK, viewpoint);
     pangolin::View & camDisp = pangolin::Display("cam").SetAspect(640.0f/480.0f).SetHandler(new pangolin::Handler3D(camState));
 
     pangolin::View & imgDisp = pangolin::Display("img").SetAspect(640.0f/480.0f);
