@@ -423,6 +423,9 @@ int main() {
     static pangolin::Var<bool> stepVideo("ui.stepVideo",false,false);
     static pangolin::Var<bool> stepVideoBack("ui.stepVideoBack",false,false);
 
+    static pangolin::Var<bool> initPose("ui.initPose",false,false);
+    static pangolin::Var<bool> useReportedPose("ui.useReportedPose",false,true);
+
     static pangolin::Var<float> sigmaPixels("ui.sigmaPixels",3.0,0.01,4);
     static pangolin::Var<float> sigmaDepth("ui.sigmaDepth",0.1,0.001,1);
     static pangolin::Var<float> focalLength("ui.focalLength",depthSource->getFocalLength().x,0.8*depthSource->getFocalLength().x,1.2*depthSource->getFocalLength().x);//475,525); //525.0,450.0,600.0);
@@ -623,22 +626,11 @@ int main() {
 #ifdef ENABLE_URDF
     // set initial state of tracked model
     val_torso_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
-    //val_torso_pose.setTransformModelToCamera(val.getTransformFrameToCamera(0));
+    val_torso_mm.setPose(val_torso_pose);
     dart::SE3 Tmc = val_torso_mm.getTransformModelToFrame(val_cam_frame_id);
     dart::SE3 Tci = dart::SE3FromRotationX(M_PI/2)*dart::SE3FromRotationZ(M_PI/2);
     val_torso_pose.setTransformModelToCamera(Tci*Tmc);
-    //val_torso_pose.setTransformModelToCamera(Tmc);
-    //val_torso_pose.setTransformModelToCamera(dart::SE3FromRotationX(M_PI/2.0)*dart::SE3FromRotationY(M_PI/2.0));
-    //val_torso_pose.setTransformModelToCamera(val.getTransformModelToFrame(val_cam_frame_id));
-    val_torso_mm.setPose(val_torso_pose);
 #endif
-
-//    memcpy(val_pose.getReducedArticulation(), lcm_joints.getJointValues().data(), val_pose.getReducedArticulatedDimensions()*sizeof(float));
-//    //val_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
-//    dart::SE3 Tmc = val.getTransformModelToFrame(val_cam_frame_id); // left_camera_optical_frame_joint
-//    dart::SE3 Tci = dart::SE3FromRotationX(M_PI/2)*dart::SE3FromRotationZ(M_PI/2);
-//    val_pose.setTransformModelToCamera(Tci*Tmc);    // robot to image
-//    val.setPose(val_pose);
 
 #ifdef ENABLE_JUSTIN
     const dart::SE3 T_camera_head = spaceJustin.getTransformFrameToCamera(headFrame);
@@ -672,6 +664,15 @@ int main() {
         val_pose.setTransformModelToCamera(Tci*Tmc);    // robot to image
 #endif
 #endif
+
+        if(pangolin::Pushed(initPose) || useReportedPose) {
+            val_torso_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
+            val_torso_mm.setPose(val_pose);
+            dart::SE3 Tmc = val_torso_mm.getTransformModelToFrame(val_cam_frame_id);
+            dart::SE3 Tci = dart::SE3FromRotationX(M_PI/2)*dart::SE3FromRotationZ(M_PI/2);
+            val_torso_pose.setTransformModelToCamera(Tci*Tmc);
+            //val_torso_mm.setPose(val_pose);
+        }
 
         static pangolin::Var<std::string> trackingModeStr("ui.mode");
         trackingModeStr = getTrackingModeString(trackingMode);
@@ -822,10 +823,13 @@ int main() {
 
         glPushMatrix();
 
-        // draw coordinates axes, x: red, y: green, z: blue
-        pangolin::glDrawAxis(0.5);
-        glColor3f(0,0,1);
-        pangolin::glDraw_z0(0.01, 10);
+        static pangolin::Var<bool> showAxes("ui.showAxes",true,true);
+        if(showAxes) {
+            // draw coordinates axes, x: red, y: green, z: blue
+            pangolin::glDrawAxis(0.5);
+            glColor3f(0,0,1);
+            pangolin::glDraw_z0(0.01, 10);
+        }
 
         if (showCameraPose) {
 
