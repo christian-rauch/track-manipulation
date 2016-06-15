@@ -258,12 +258,7 @@ int main() {
     dart::Pose spaceJustinPose(justinPoseReduction);
 //    std::cout << spaceJustinPose.getReducedArticulatedDimensions() << " full justin articulated dimensions" << std::endl;
 
-    tracker.addModel(objectModelFile,
-                     0.5*modelSdfResolution,
-                     modelSdfPadding,
-                     64);
-//                     objObsSdfRes,
-//                     objObsSdfOffset);
+
 
     tracker.addModel("../models/spaceJustin/spaceJustinHandLeft.xml",
                      //"../models/spaceJustinArms.xml",
@@ -274,6 +269,13 @@ int main() {
                      obsSdfResolution,
                      make_float3(-0.5*obsSdfSize*obsSdfResolution) + obsSdfOffset,
                      handPoseReduction);
+
+    tracker.addModel(objectModelFile,
+                     0.5*modelSdfResolution,
+                     modelSdfPadding,
+                     64);
+//                     objObsSdfRes,
+//                     objObsSdfOffset);
 
     std::vector<pangolin::Var<float> * *> poseVars;
 
@@ -437,12 +439,12 @@ int main() {
 
 
     dart::MirroredModel & rightHand = tracker.getModel(0);
-    dart::MirroredModel & leftHand = tracker.getModel(2);
-    dart::MirroredModel & object = tracker.getModel(1);
+    dart::MirroredModel & leftHand = tracker.getModel(1);
+    dart::MirroredModel & object = tracker.getModel(2);
 
     dart::Pose & rightHandPose = tracker.getPose(0);
-    dart::Pose & leftHandPose = tracker.getPose(2);
-    dart::Pose & objectPose = tracker.getPose(1);
+    dart::Pose & leftHandPose = tracker.getPose(1);
+    dart::Pose & objectPose = tracker.getPose(2);
 
 
     // set up reported pose offsets
@@ -578,7 +580,7 @@ int main() {
 
                 // update accumulated info
                 for (int m=0; m<tracker.getNumModels(); ++m) {
-                    if (m == 1 && trackingMode == ModeIntermediate) { continue; }
+                    if (m == 2 && trackingMode == ModeIntermediate) { continue; }
                     const Eigen::MatrixXf & JTJ = *tracker.getOptimizer()->getJTJ(m);
                     if (JTJ.rows() == 0) { continue; }
                     Eigen::MatrixXf & dampingMatrix = tracker.getDampingMatrix(m);
@@ -1074,13 +1076,13 @@ int main() {
                 rightHandArticulation[i] += diff;
             }
             tracker.updatePose(0);
-            float * leftHandArticulation = tracker.getPose(2).getReducedArticulation();
+            float * leftHandArticulation = tracker.getPose(1).getReducedArticulation();
             for (int i=0; i<tracker.getPose(2).getReducedArticulatedDimensions(); ++i) {
                 const int j = 7 + 15 + 7 + i;
                 float diff = currentReportedPose[j] - lastReportedPose[j];
                 leftHandArticulation[i] += diff;
             }
-            tracker.updatePose(2);
+            tracker.updatePose(1);
 
             // apply object 6DoF delta
             if (trackReported) {
