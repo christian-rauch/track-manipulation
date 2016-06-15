@@ -9,8 +9,6 @@ add_definitions(-std=c++11)
 
 #add_definitions ("-Wall")
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/dart/CMakeModules/")
-
 # find packages with modules
 find_package(Pangolin REQUIRED)
 find_package(CUDA REQUIRED)
@@ -40,11 +38,9 @@ include_directories(
     ${eigen3_INCLUDE_DIR}
     ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/src
-    ${PROJECT_SOURCE_DIR}/dart/src
 )
 link_directories(
     ${CMAKE_BINARY_DIR}
-    ${PROJECT_SOURCE_DIR}/dart/lib
     ${dart_LIBRARY_DIRS}
     ${dart_urdf_LIBRARY_DIRS}
     ${dart_lcm_LIBRARY_DIRS}
@@ -53,12 +49,6 @@ link_libraries(
     ${Pangolin_LIBRARIES}
     ${matheval_LIBRARIES}
 )
-
-# LCM
-#if(lcm_FOUND)
-#    include_directories(dart/src/depth_sources/lcm)
-#    link_libraries(${lcm_LIBRARIES})
-#endif()
 
 ##########################################################################
 #   Build GPU or CPU-only executable depending on cuda                   #
@@ -81,18 +71,13 @@ link_directories( ${CUDA_TOOLKIT_ROOT_DIR}/lib64/)
 
 cuda_add_executable(
     #executable
-    track_space_justin_demo
+    track_manipulation
     #sources
     ${all_sources}
     #main
-    track_space_justin_demo.cpp
+    track_manipulation.cpp
 )
 #target_link_libraries(track_space_justin_demo dart)
-target_link_libraries(track_space_justin_demo ${dart_LIBRARIES})
-target_link_libraries(track_space_justin_demo ${dart_urdf_LIBRARIES})
-target_link_libraries(track_space_justin_demo ${dart_lcm_LIBRARIES})
-
-#get_cmake_property(_variableNames VARIABLES)
-#foreach (_variableName ${_variableNames})
-#    message(STATUS "${_variableName}=${${_variableName}}")
-#endforeach()
+target_link_libraries(track_manipulation ${dart_LIBRARIES})
+target_link_libraries(track_manipulation ${dart_urdf_LIBRARIES})
+target_link_libraries(track_manipulation ${dart_lcm_LIBRARIES})
