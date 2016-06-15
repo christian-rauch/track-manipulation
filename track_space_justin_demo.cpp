@@ -383,6 +383,9 @@ int main() {
     const int val_cam_frame_id = val.getJointIdByName("left_camera_optical_frame_joint");
     const int val_torso_frame_id = val.getJointIdByName("torsoRoll");
 
+    // track bottle
+    dart::HostOnlyModel bottle = dart::readModelURDF("../models/bottle/bottle.urdf");
+    tracker.addModel(bottle, 0.5*modelSdfResolution, modelSdfPadding, 64);
     // track subparts of Valkyrie
     dart::HostOnlyModel val_torso = dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", "torso", "obj");
     //dart::HostOnlyModel val_torso = dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", "pelvis", "obj");
@@ -399,10 +402,6 @@ int main() {
                      1e5,       // collisionCloudDensity (def = 1e5)
                      true      // cacheSdfs
                      );
-
-    dart::HostOnlyModel bottle = dart::readModelURDF("../models/bottle/bottle.urdf");
-
-    tracker.addModel(bottle, 0.5*modelSdfResolution, modelSdfPadding, 64);
 #endif
 
     std::cout<<"added models: "<<tracker.getNumModels()<<std::endl;
