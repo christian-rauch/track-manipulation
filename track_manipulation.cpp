@@ -360,6 +360,9 @@ int main() {
             pangolin::DisplayBase().ActivateScissorAndClear();
         }
 
+        // fetch new image data
+        tracker.stepForward();
+
         // get new joint data for reported robot state
         lcm_joints.next(1);
         // get reported Valkyrie configuration
@@ -881,8 +884,6 @@ int main() {
         pangolin::FinishFrame();
 
         if (pangolin::Pushed(stepVideo) || trackFromVideo || pangolinFrame == 1) {
-
-            tracker.stepForward();
 
             static pangolin::Var<float> planeFitNormThresh("opt.planeNormThresh",0.25,-1,1);
             static pangolin::Var<float> planeFitDistThresh("opt.planeDistThresh",0.005,0.0001,0.005);
