@@ -302,9 +302,9 @@ int main() {
     val_multisense.height = 1024;
     val_multisense.subpixel_resolution = 1.0/16.0;
 
+    // initialise LCM depth source and listen on channel "CAMERA" in a separate thread
     dart::LCM_DepthSource<float,uchar3> *depthSource = new dart::LCM_DepthSource<float,uchar3>(val_multisense);
-
-    depthSource->initLCM("CAMERA", 1);
+    depthSource->initLCM("CAMERA", true);
 #endif
 
     tracker.addDepthSource(depthSource);
@@ -626,8 +626,8 @@ int main() {
     // measures joint values for reported robot configuration
     dart::LCM_JointsProvider lcm_joints;
     lcm_joints.setJointNames(val);
-    lcm_joints.initLCM("EST_ROBOT_STATE");
-    lcm_joints.next(100); // wait for initial configuration
+    // listen on channel "EST_ROBOT_STATE" in a separate thread
+    lcm_joints.initLCM("EST_ROBOT_STATE", true);
 #endif
 
     // -=-=-=-=- set up initial poses -=-=-=-=-
@@ -647,6 +647,8 @@ int main() {
 #endif
 
 #ifdef ENABLE_URDF
+    // wait to get initial configuration of robot from LCM thread
+    usleep(10000);
     // set initial state of tracked model
     val_torso_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
     val_torso_mm.setPose(val_torso_pose);
@@ -681,8 +683,6 @@ int main() {
         tracker.stepForward();
 
 #ifdef ENABLE_LCM_JOINTS
-        // get new joint data for reported robot state
-        lcm_joints.next(1);
 #ifdef ENABLE_URDF
         // get reported Valkyrie configuration
         val_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
