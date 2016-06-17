@@ -678,6 +678,8 @@ int main() {
             pangolin::DisplayBase().ActivateScissorAndClear();
         }
 
+        tracker.stepForward();
+
 #ifdef ENABLE_LCM_JOINTS
         // get new joint data for reported robot state
         lcm_joints.next(1);
@@ -911,17 +913,6 @@ int main() {
 
 #ifdef ENABLE_URDF
             // render Valkyrie reported state as wireframe model, origin is the camera centre
-//#ifdef ENABLE_LCM_JOINTS
-//            val_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
-//            dart::SE3 Twr = lcm_joints.getTransformWorldToRobot();  // world to robot
-//#endif
-//            dart::SE3 Tmc = val.getTransformModelToFrame(val_cam_frame_id); // left_camera_optical_frame_joint
-//            //dart::SE3 Twc = Twr*Tmc;    // world to camera
-//            //val_pose.setTransformModelToCamera(Twc); // world to camera?
-//            // camera to image, rotate around X, then around Z
-//            dart::SE3 Tci = dart::SE3FromRotationX(M_PI/2)*dart::SE3FromRotationZ(M_PI/2);
-//            val_pose.setTransformModelToCamera(Tci*Tmc);    // robot to image
-            //val_pose.setTransformModelToCamera(Tmc);    // robot to camera
             val.setPose(val_pose);
             val.renderWireframe();
 #endif
@@ -1263,8 +1254,6 @@ int main() {
         pangolin::FinishFrame();
 
         if (pangolin::Pushed(stepVideo) || trackFromVideo || pangolinFrame == 1) {
-
-            tracker.stepForward();
 
 #ifdef ENABLE_JUSTIN
             const float * currentReportedPose = reportedJointAngles[depthSource->getFrame()];
