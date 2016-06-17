@@ -220,7 +220,7 @@ static const dart::SE3 initialT_co(make_float4(0.262348, -0.955909, -0.131952, 0
 static float3 initialTableNorm = make_float3(0.0182391, 0.665761, -0.745942);
 static float initialTableIntercept = -0.705196;
 
-int main() {
+int main(int argc, char *argv[]) {
 
 #ifdef ENABLE_JUSTIN
     const std::string objectModelFile = "../models/ikeaMug/ikeaMug.xml";
@@ -237,6 +237,7 @@ int main() {
     pangolin::CreateWindowAndBind("Main",640+4*panelWidth+1,2*480+1);
 
     glewInit();
+    glutInit(&argc, argv);
     dart::Tracker tracker;
 
     // -=-=-=- pangolin window setup -=-=-=-

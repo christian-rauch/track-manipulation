@@ -13,6 +13,7 @@ add_definitions(-std=c++11)
 find_package(Pangolin REQUIRED)
 find_package(CUDA REQUIRED)
 find_package(Boost REQUIRED thread system)
+find_package(GLUT REQUIRED)
 
 
 # find packages with pkg-config
@@ -39,6 +40,7 @@ include_directories(
     ${eigen3_INCLUDE_DIR}
     ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/src
+    ${GLUT_INCLUDE_DIRS}
 )
 link_directories(
     ${CMAKE_BINARY_DIR}
@@ -83,3 +85,4 @@ target_link_libraries(track_manipulation ${dart_LIBRARIES})
 target_link_libraries(track_manipulation ${dart_urdf_LIBRARIES})
 target_link_libraries(track_manipulation ${dart_lcm_LIBRARIES})
 target_link_libraries(track_manipulation ${Boost_SYSTEM_LIBRARIES} ${Boost_THREAD_LIBRARIES})
+target_link_libraries(track_manipulation ${GLUT_LIBRARY})
