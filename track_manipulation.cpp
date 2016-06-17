@@ -151,9 +151,10 @@ int main() {
     val_multisense.height = 1024;
     val_multisense.subpixel_resolution = 1.0/16.0;
 
+    // initialise the LCM depth source
     dart::LCM_DepthSource<float,uchar3> *depthSource = new dart::LCM_DepthSource<float,uchar3>(val_multisense);
 
-    depthSource->initLCM("CAMERA", 1);
+    depthSource->initLCM("CAMERA", true);
 
     tracker.addDepthSource(depthSource);
     dart::Optimizer & optimizer = *tracker.getOptimizer();
@@ -338,8 +339,7 @@ int main() {
     // measures joint values for reported robot configuration
     dart::LCM_JointsProvider lcm_joints;
     lcm_joints.setJointNames(val);
-    lcm_joints.initLCM("EST_ROBOT_STATE");
-    lcm_joints.next(100); // wait for initial configuration
+    lcm_joints.initLCM("EST_ROBOT_STATE", true);
 
 
     // -=-=-=-=- set up initial poses -=-=-=-=-
@@ -363,8 +363,6 @@ int main() {
         // fetch new image data
         tracker.stepForward();
 
-        // get new joint data for reported robot state
-        lcm_joints.next(1);
         // get reported Valkyrie configuration
         val_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
         // transform coordinate origin to left camera image centre
