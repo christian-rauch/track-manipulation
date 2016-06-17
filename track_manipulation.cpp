@@ -30,24 +30,35 @@
 
 #define EIGEN_DONT_ALIGN
 
-// switch depth sources
-//#define DEPTH_SOURCE_IMAGE // demo files
-// read depth images from LCM topic
-#define DEPTH_SOURCE_LCM
-// read depth (not disparity) images from MultiSense SL, use specific camera parameters
-//#define DEPTH_SOURCE_IMAGE_MULTISENSE
+// select a robot
+//#define JUSTIN      // using XML model and data files
+#define VALKYRIE    // using URDF model and LCM subscriptions
 
-//#define DEPTH_SOURCE_IMAGE_TEST
+// switch depth sources
+#ifdef JUSTIN
+    #define DEPTH_SOURCE_IMAGE // demo files
+#endif
+
+#ifdef VALKYRIE
+    // read depth images from LCM topic
+    #define DEPTH_SOURCE_LCM
+    // read depth (not disparity) images from MultiSense SL, use specific camera parameters
+    //#define DEPTH_SOURCE_IMAGE_MULTISENSE
+#endif
 
 #ifdef DEPTH_SOURCE_LCM
     #include <dart_lcm/dart_lcm_depth_provider.hpp>
 #endif
 
-//#define ENABLE_JUSTIN
+#ifdef JUSTIN
+    #define ENABLE_JUSTIN
+#endif
 
-// FIXME: set by cmake
-#define ENABLE_URDF
-#define ENABLE_LCM_JOINTS
+#ifdef VALKYRIE
+    // FIXME: set by cmake
+    #define ENABLE_URDF
+    #define ENABLE_LCM_JOINTS
+#endif
 
 #ifdef ENABLE_URDF
     #include <dart_urdf/read_model_urdf.h>
@@ -57,8 +68,10 @@
     #include <dart_lcm/dart_lcm_joints.hpp>
 #endif
 
-// switch use of contact information
-//#define USE_CONTACT_PRIOR
+#ifdef JUSTIN
+    // switch use of contact information
+    #define USE_CONTACT_PRIOR
+#endif
 
 
 using namespace std;
@@ -238,10 +251,15 @@ int main() {
     int glFL = 400;
     int glPPx = glWidth/2;
     int glPPy = glHeight/2;
-    //pangolin::OpenGlMatrixSpec glK = pangolin::ProjectionMatrixRDF_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
+#ifdef ENABLE_JUSTIN
+    pangolin::OpenGlMatrixSpec glK = pangolin::ProjectionMatrixRDF_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
+    pangolin::OpenGlRenderState camState(glK);
+#endif
+#ifdef ENABLE_URDF
     pangolin::OpenGlMatrixSpec glK = pangolin::ProjectionMatrixRUB_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
     pangolin::OpenGlMatrix viewpoint = pangolin::ModelViewLookAt(0, 0, 0.05, 0, -0.1, 0.2, pangolin::AxisY);
     pangolin::OpenGlRenderState camState(glK, viewpoint);
+#endif
     pangolin::View & camDisp = pangolin::Display("cam").SetAspect(640.0f/480.0f).SetHandler(new pangolin::Handler3D(camState));
 
     pangolin::View & imgDisp = pangolin::Display("img").SetAspect(640.0f/480.0f);
@@ -441,9 +459,10 @@ int main() {
     //static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
     static pangolin::Var<bool> stepVideo("ui.stepVideo",false,false);
     static pangolin::Var<bool> stepVideoBack("ui.stepVideoBack",false,false);
-
+#ifdef ENABLE_URDF
     static pangolin::Var<bool> resetRobotPose("ui.resetRobotPose",false,false);
     static pangolin::Var<bool> useReportedPose("ui.useReportedPose",false,true);
+#endif
 
     static pangolin::Var<float> sigmaPixels("ui.sigmaPixels",3.0,0.01,4);
     static pangolin::Var<float> sigmaDepth("ui.sigmaDepth",0.1,0.001,1);
@@ -484,9 +503,9 @@ int main() {
     pangolin::Var<float> stabilityThreshold("opt.stabilityThreshold",7.5e-6,5e-6,1e-5);
     pangolin::Var<float> lambdaModToObs("opt.lambdaModToObs",0.5,0,1);
     pangolin::Var<float> lambdaObsToMod("opt.lambdaObsToMod",1,0,1);
+#ifdef USE_CONTACT_PRIOR
     pangolin::Var<float> lambdaIntersection("opt.lambdaIntersection",1.f,0,40);
     //pangolin::Var<float> selfIntersectWeight("opt.selfIntersectWeight",atof(argv[2]),0,40);
-#ifdef USE_CONTACT_PRIOR
     pangolin::Var<float> lambdaContact("opt.lambdaContact",1.f,0,200);
 #endif
 
@@ -501,8 +520,12 @@ int main() {
     pangolin::Var<float> tableIntercept("opt.tableIntercept",initialTableIntercept,-1,1);
 
     static pangolin::Var<bool> fitTable("opt.fitTable",true,true);
-    //static pangolin::Var<bool> subtractTable("opt.subtractTable",true,true);
+#ifdef JUSTIN
+    static pangolin::Var<bool> subtractTable("opt.subtractTable",true,true);
+#endif
+#ifdef VALKYRIE
     static pangolin::Var<bool> subtractTable("opt.subtractTable",false,true);
+#endif
 
 #ifdef USE_CONTACT_PRIOR
     static pangolin::Var<bool> * contactVars[10];
@@ -683,7 +706,9 @@ int main() {
             pangolin::DisplayBase().ActivateScissorAndClear();
         }
 
+#ifdef ENABLE_URDF
         tracker.stepForward();
+#endif
 
 #ifdef ENABLE_LCM_JOINTS
 #ifdef ENABLE_URDF
@@ -696,13 +721,17 @@ int main() {
 #endif
 #endif
 
+#ifdef ENABLE_URDF
         if(pangolin::Pushed(resetRobotPose) || useReportedPose) {
+#ifdef ENABLE_LCM_JOINTS
             val_torso_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
+#endif
             val_torso_mm.setPose(val_torso_pose);
             dart::SE3 Tmc = val_torso_mm.getTransformModelToFrame(val_torso_cam_frame_id);
             dart::SE3 Tci = dart::SE3FromRotationX(M_PI/2)*dart::SE3FromRotationZ(M_PI/2);
             val_torso_pose.setTransformModelToCamera(Tci*Tmc);
         }
+#endif
 
 #ifdef ENABLE_JUSTIN
         static pangolin::Var<std::string> trackingModeStr("ui.mode");
@@ -858,7 +887,7 @@ int main() {
         camDisp.ActivateAndScissor(camState);
 
         glPushMatrix();
-
+#ifdef ENABLE_URDF
         static pangolin::Var<bool> showAxes("ui.showAxes",true,true);
         if(showAxes) {
             // draw coordinates axes, x: red, y: green, z: blue
@@ -866,6 +895,7 @@ int main() {
             glColor3f(0,0,1);
             pangolin::glDraw_z0(0.01, 10);
         }
+#endif
 
         if (showCameraPose) {
 
@@ -1265,6 +1295,8 @@ int main() {
         if (pangolin::Pushed(stepVideo) || trackFromVideo || pangolinFrame == 1) {
 
 #ifdef ENABLE_JUSTIN
+            tracker.stepForward();
+
             const float * currentReportedPose = reportedJointAngles[depthSource->getFrame()];
             const float * lastReportedPose = (depthSource->getFrame()==0) ? currentReportedPose :  reportedJointAngles[depthSource->getFrame()-1];
 
@@ -1394,9 +1426,9 @@ int main() {
                                       tableIntercept,0.005,-1.01);
             }
 
+#ifdef ENABLE_JUSTIN
             float totalPerPointError = optimizer.getErrPerObsPoint(1,0) + optimizer.getErrPerModPoint(1,0);
 
-#ifdef ENABLE_JUSTIN
             switch (trackingMode) {
             case ModeObjOnTable:
 #ifdef USE_CONTACT_PRIOR
