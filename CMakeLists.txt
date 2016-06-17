@@ -12,6 +12,7 @@ add_definitions(-std=c++11)
 # find packages with modules
 find_package(Pangolin REQUIRED)
 find_package(CUDA REQUIRED)
+find_package(Boost REQUIRED thread system)
 
 
 # find packages with pkg-config
@@ -81,3 +82,4 @@ cuda_add_executable(
 target_link_libraries(track_manipulation ${dart_LIBRARIES})
 target_link_libraries(track_manipulation ${dart_urdf_LIBRARIES})
 target_link_libraries(track_manipulation ${dart_lcm_LIBRARIES})
+target_link_libraries(track_manipulation ${Boost_SYSTEM_LIBRARIES} ${Boost_THREAD_LIBRARIES})
