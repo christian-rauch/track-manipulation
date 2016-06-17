@@ -83,6 +83,7 @@ enum DebugImgs {
     DebugN
 };
 
+#ifdef ENABLE_JUSTIN
 enum TrackingMode {
     ModeObjOnTable,
     ModeIntermediate,
@@ -103,10 +104,11 @@ std::string getTrackingModeString(const TrackingMode mode) {
     }
 }
 
-const static int panelWidth = 180;
-
 static const int fullArmFingerTipFrames[10] = { 11, 15, 19, 23, 27,  38, 42, 46, 50, 54 };
 static const int handFingerTipFrames[5] = { 4, 8, 12, 16, 20 };
+#endif
+
+const static int panelWidth = 180;
 
 void setSlidersFromTransform(dart::SE3& transform, pangolin::Var<float>** sliders) {
     *sliders[0] = transform.r0.w; transform.r0.w = 0;
@@ -670,8 +672,9 @@ int main() {
         std::cerr << "???" << std::endl;
         spaceJustinPose.projectReducedToFull();
     }
-#endif
+
     TrackingMode trackingMode = ModeObjOnTable;
+#endif
 
     // ------------------- main loop ---------------------
     for (int pangolinFrame=1; !pangolin::ShouldQuit(); ++pangolinFrame) {
@@ -701,6 +704,7 @@ int main() {
             val_torso_pose.setTransformModelToCamera(Tci*Tmc);
         }
 
+#ifdef ENABLE_JUSTIN
         static pangolin::Var<std::string> trackingModeStr("ui.mode");
         trackingModeStr = getTrackingModeString(trackingMode);
 
@@ -712,6 +716,7 @@ int main() {
 
         opts.lambdaIntersection[1 + 3*2] = lambdaIntersection; // object->left
         opts.lambdaIntersection[2 + 3*1] = lambdaIntersection; // left->object
+#endif
 
         opts.focalLength = focalLength;
         opts.normThreshold = normalThreshold;
@@ -719,9 +724,11 @@ int main() {
             opts.distThreshold[m] = distanceThreshold;
         }
         opts.regularization[0] = opts.regularization[1] = opts.regularization[2] = 0.01;
+#ifdef ENABLE_JUSTIN
         opts.regularizationScaled[0] = handRegularization;
         opts.regularizationScaled[1] = objectRegularization;
         opts.regularizationScaled[2] = handRegularization;
+#endif
         opts.planeOffset[2] = planeOffset;
         opts.lambdaObsToMod = lambdaObsToMod;
         opts.lambdaModToObs = lambdaModToObs;
@@ -793,7 +800,9 @@ int main() {
 
                 // update accumulated info
                 for (int m=0; m<tracker.getNumModels(); ++m) {
+#ifdef ENABLE_JUSTIN
                     if (m == 1 && trackingMode == ModeIntermediate) { continue; }
+#endif
                     const Eigen::MatrixXf & JTJ = *tracker.getOptimizer()->getJTJ(m);
                     if (JTJ.rows() == 0) { continue; }
                     Eigen::MatrixXf & dampingMatrix = tracker.getDampingMatrix(m);
@@ -1387,6 +1396,7 @@ int main() {
 
             float totalPerPointError = optimizer.getErrPerObsPoint(1,0) + optimizer.getErrPerModPoint(1,0);
 
+#ifdef ENABLE_JUSTIN
             switch (trackingMode) {
             case ModeObjOnTable:
 #ifdef USE_CONTACT_PRIOR
@@ -1425,6 +1435,7 @@ int main() {
                 }
                 break;
             }
+#endif
 
         } else {
 #ifdef USE_CONTACT_PRIOR
