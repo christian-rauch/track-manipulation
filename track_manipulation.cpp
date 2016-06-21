@@ -428,6 +428,19 @@ int main(int argc, char *argv[]) {
                      1e5,       // collisionCloudDensity (def = 1e5)
                      true      // cacheSdfs
                      );
+
+    // position priors
+    // define 4 corresponding points in world camera and valkyrie camera frame
+    // to fix head to reported head pose
+    const float point_weight = 10000;
+    dart::Point3D3DPrior val_camera_origin0(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(0, 0, 0), make_float3(0, 0, 0), point_weight);
+    dart::Point3D3DPrior val_camera_origin1(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(0, 0, 1), make_float3(1, 0, 0), point_weight);
+    dart::Point3D3DPrior val_camera_origin2(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(-1, 0, 0), make_float3(0, 1, 0), point_weight);
+    dart::Point3D3DPrior val_camera_origin3(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(0, -1, 0), make_float3(0, 0, 1), point_weight);
+    tracker.addPrior(&val_camera_origin0);
+    tracker.addPrior(&val_camera_origin1);
+    tracker.addPrior(&val_camera_origin2);
+    tracker.addPrior(&val_camera_origin3);
 #endif
 
     std::cout<<"added models: "<<tracker.getNumModels()<<std::endl;
