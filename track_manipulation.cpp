@@ -34,6 +34,8 @@
 //#define JUSTIN      // using XML model and data files
 #define VALKYRIE    // using URDF model and LCM subscriptions
 
+//#define WITH_BOTTLE
+
 // switch depth sources
 #ifdef JUSTIN
     #define DEPTH_SOURCE_IMAGE // demo files
@@ -404,6 +406,7 @@ int main(int argc, char *argv[]) {
     const int val_cam_frame_id = val.getJointIdByName("left_camera_optical_frame_joint");
     const int val_torso_frame_id = val.getJointIdByName("torsoRoll");
 
+#ifdef WITH_BOTTLE
     // track bottle
     dart::HostOnlyModel bottle = dart::readModelURDF("../models/bottle/bottle.urdf");
     tracker.addModel(bottle, 0.5*modelSdfResolution, modelSdfPadding, 64);
@@ -411,6 +414,7 @@ int main(int argc, char *argv[]) {
     // rotation according to Tait-Bryan angles: Z_1 Y_2 X_3
     // e.g. first: rotation around Z-axis, second: rotation around Y-axis, third: rotation around X-axis
     const dart::SE3 T_cb = dart::SE3FromTranslation(0.244, -0.3036, 0.5952) * dart::SE3FromEuler(make_float3(0.2244, -0.594, -0.6732));
+#endif
 
     // track subparts of Valkyrie
     dart::HostOnlyModel val_torso = dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", "torso", "obj");
@@ -642,7 +646,9 @@ int main(int argc, char *argv[]) {
     // get references to model and its pose for tracking
     dart::MirroredModel & val_torso_mm = tracker.getModel(tracker.getModelIDbyName("valkyrie"));
     dart::Pose & val_torso_pose = tracker.getPose("valkyrie");
+#ifdef WITH_BOTTLE
     dart::Pose & bottle_pose = tracker.getPose("bottle");
+#endif
 #endif
 
 
@@ -694,9 +700,10 @@ int main(int argc, char *argv[]) {
     dart::SE3 Tmc = val_torso_mm.getTransformModelToFrame(val_torso_cam_frame_id);
     dart::SE3 Tci = dart::SE3FromRotationX(M_PI/2)*dart::SE3FromRotationZ(M_PI/2);
     val_torso_pose.setTransformModelToCamera(Tci*Tmc);
-
+#ifdef WITH_BOTTLE
     bottle_pose.setTransformModelToCamera(T_cb);
     bottle.setPose(bottle_pose);
+#endif
 #endif
 
 #ifdef ENABLE_JUSTIN
