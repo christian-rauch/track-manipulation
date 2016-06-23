@@ -34,7 +34,8 @@
 //#define JUSTIN      // using XML model and data files
 #define VALKYRIE    // using URDF model and LCM subscriptions
 
-//#define WITH_BOTTLE
+#define WITH_BOTTLE
+//#define WITH_BOX
 
 // switch depth sources
 #ifdef JUSTIN
@@ -414,6 +415,22 @@ int main(int argc, char *argv[]) {
     // rotation according to Tait-Bryan angles: Z_1 Y_2 X_3
     // e.g. first: rotation around Z-axis, second: rotation around Y-axis, third: rotation around X-axis
     const dart::SE3 T_cb = dart::SE3FromTranslation(0.244, -0.3036, 0.5952) * dart::SE3FromEuler(make_float3(0.2244, -0.594, -0.6732));
+
+    // lcmlog__2016-06-23__13-36-34-184696__cr-ir_pattern2
+    //const dart::SE3 T_cb = dart::SE3FromTranslation(-0.02976, -0.1726, 0.5655) * dart::SE3FromEuler(make_float3(0.2244, -1.01, -1.309));
+#endif
+
+#ifdef WITH_BOX
+    // track bottle
+    dart::HostOnlyModel box = dart::readModelURDF("../models/box/box.urdf");
+    tracker.addModel(box, 0.5*modelSdfResolution, modelSdfPadding, 64);
+    // initial bottle pose in camera coordinate system, transformation camera to bottle
+    // rotation according to Tait-Bryan angles: Z_1 Y_2 X_3
+    // e.g. first: rotation around Z-axis, second: rotation around Y-axis, third: rotation around X-axis
+    const dart::SE3 T_cb = dart::SE3FromTranslation(0.244, -0.3036, 0.5952) * dart::SE3FromEuler(make_float3(0.2244, -0.594, -0.6732));
+
+    // lcmlog__2016-06-23__13-41-58-648227__cr-ir_pattern3
+    //const dart::SE3 T_cb = dart::SE3FromTranslation(-0.1012, -0.2143, 0.5655) * dart::SE3FromEuler(make_float3(1.122, 0.5984, -1.085));
 #endif
 
     // track subparts of Valkyrie
@@ -649,6 +666,9 @@ int main(int argc, char *argv[]) {
 #ifdef WITH_BOTTLE
     dart::Pose & bottle_pose = tracker.getPose("bottle");
 #endif
+#ifdef WITH_BOX
+    dart::Pose & box_pose = tracker.getPose("box");
+#endif
 #endif
 
 
@@ -703,6 +723,10 @@ int main(int argc, char *argv[]) {
 #ifdef WITH_BOTTLE
     bottle_pose.setTransformModelToCamera(T_cb);
     bottle.setPose(bottle_pose);
+#endif
+#ifdef WITH_BOX
+    box_pose.setTransformModelToCamera(T_cb);
+    box.setPose(box_pose);
 #endif
 #endif
 
