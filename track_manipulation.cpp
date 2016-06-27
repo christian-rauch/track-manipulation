@@ -326,9 +326,12 @@ int main(int argc, char *argv[]) {
     val_multisense.height = 1024;
     val_multisense.subpixel_resolution = 1.0/16.0;
 
+    // example of using log file
+    //LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/lcmlog__2016-04-20__18-51-14-226028__yy-wxm-table-grasping-left-hand");
+
     // initialise LCM depth source and listen on channel "CAMERA" in a separate thread
     dart::LCM_DepthSource<float,uchar3> *depthSource = new dart::LCM_DepthSource<float,uchar3>(val_multisense);
-    depthSource->initLCM("CAMERA", true);
+    depthSource->subscribe("CAMERA");
 #endif
 
     tracker.addDepthSource(depthSource);
@@ -692,7 +695,7 @@ int main(int argc, char *argv[]) {
     dart::LCM_JointsProvider lcm_joints;
     lcm_joints.setJointNames(val);
     // listen on channel "EST_ROBOT_STATE" in a separate thread
-    lcm_joints.initLCM("EST_ROBOT_STATE", true);
+    lcm_joints.subscribe("EST_ROBOT_STATE");
 #endif
 
     // -=-=-=-=- set up initial poses -=-=-=-=-
