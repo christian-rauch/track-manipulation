@@ -219,8 +219,7 @@ int main() {
     dart::ImageDepthSource<ushort,uchar3> * depthSource = new dart::ImageDepthSource<ushort,uchar3>();
     depthSource->initialize(videoLoc+"/depth",dart::IMAGE_PNG,
                             make_float2(525/2,525/2),make_float2(160,120),
-                            320,240,0.001,0);
-//                            true,videoLoc+"/color",dart::IMAGE_PNG,320,240);
+                            320,240,0.001,0, true,videoLoc+"/color",dart::IMAGE_PNG,320,240);
 
     // ----
 
