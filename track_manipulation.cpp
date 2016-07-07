@@ -45,6 +45,8 @@
 #ifdef VALKYRIE
     // read depth images from LCM topic
     #define DEPTH_SOURCE_LCM
+    #define DEPTH_SOURCE_LCM_MULTISENSE
+    //#define DEPTH_SOURCE_LCM_XTION
     // read depth (not disparity) images from MultiSense SL, use specific camera parameters
     //#define DEPTH_SOURCE_IMAGE_MULTISENSE
 #endif
@@ -316,7 +318,7 @@ int main(int argc, char *argv[]) {
     depthSource->initialize("../depth_grasping_bottle",dart::IMAGE_PNG, make_float2(556.183166504, 556.183166504),make_float2(512,512), 1024, 1024, 0.001);
 #endif
 
-#ifdef DEPTH_SOURCE_LCM
+#ifdef DEPTH_SOURCE_LCM_MULTISENSE
     // Valkyrie Unit D, MultiSense SL
     dart::StereoCameraParameter val_multisense;
     val_multisense.focal_length = make_float2(556.183166504, 556.183166504);
@@ -332,6 +334,21 @@ int main(int argc, char *argv[]) {
     // initialise LCM depth source and listen on channel "CAMERA" in a separate thread
     dart::LCM_DepthSource<float,uchar3> *depthSource = new dart::LCM_DepthSource<float,uchar3>(val_multisense);
     depthSource->subscribe("CAMERA");
+#endif
+
+#ifdef DEPTH_SOURCE_LCM_XTION
+    // Valkyrie Unit D, Asus Xtion PRO Live
+    dart::StereoCameraParameter val_xtion;
+    val_xtion.focal_length = make_float2(528.01442863461716, 528.01442863461716);
+    val_xtion.camera_center = make_float2(320, 267);
+    val_xtion.baseline = 0.075;
+    val_xtion.width = 640;
+    val_xtion.height = 480;
+    val_xtion.depth_resolution = 1.0/1000.0;
+
+    // initialise LCM depth source and listen on channel "CAMERA" in a separate thread
+    dart::LCM_DepthSource<float,uchar3> *depthSource = new dart::LCM_DepthSource<float,uchar3>(val_xtion);
+    depthSource->subscribe("OPENNI_FRAME");
 #endif
 
     tracker.addDepthSource(depthSource);
