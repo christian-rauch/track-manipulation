@@ -45,8 +45,8 @@
 #ifdef VALKYRIE
     // read depth images from LCM topic
     #define DEPTH_SOURCE_LCM
-    #define DEPTH_SOURCE_LCM_MULTISENSE
-    //#define DEPTH_SOURCE_LCM_XTION
+    //#define DEPTH_SOURCE_LCM_MULTISENSE
+    #define DEPTH_SOURCE_LCM_XTION
     // read depth (not disparity) images from MultiSense SL, use specific camera parameters
     //#define DEPTH_SOURCE_IMAGE_MULTISENSE
 #endif
@@ -334,6 +334,8 @@ int main(int argc, char *argv[]) {
     // initialise LCM depth source and listen on channel "CAMERA" in a separate thread
     dart::LCM_DepthSource<float,uchar3> *depthSource = new dart::LCM_DepthSource<float,uchar3>(val_multisense);
     depthSource->subscribe("CAMERA");
+
+    const std::string cam_frame_name = "left_camera_optical_frame_joint";
 #endif
 
 #ifdef DEPTH_SOURCE_LCM_XTION
@@ -349,6 +351,8 @@ int main(int argc, char *argv[]) {
     // initialise LCM depth source and listen on channel "CAMERA" in a separate thread
     dart::LCM_DepthSource<float,uchar3> *depthSource = new dart::LCM_DepthSource<float,uchar3>(val_xtion);
     depthSource->subscribe("OPENNI_FRAME");
+
+    const std::string cam_frame_name = "head_xtion_joint";
 #endif
 
     tracker.addDepthSource(depthSource);
@@ -406,6 +410,11 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef ENABLE_URDF
+    // original Valkyrie model
+    //const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_sim.urdf";
+    // Valkyrie with attached Asus Xtion PRO LIVE
+    const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_with_xtion.urdf";
+
     // add Valkyrie
     std::string val_root;
     val_root = "pelvis";
@@ -415,7 +424,8 @@ int main(int argc, char *argv[]) {
     //val_root = "rightForearmLink";
     //val_root = "rightElbowPitchLink";
     //val_root = "rightForearmLink";
-    dart::HostOnlyModel val = dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", val_root, "obj");
+    //dart::HostOnlyModel val = dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", val_root, "obj");
+    dart::HostOnlyModel val = dart::readModelURDF(urdf_model_path, val_root, "obj");
 
     std::cout<<"found robot: "<<val.getName()<<std::endl;
 
@@ -424,8 +434,9 @@ int main(int argc, char *argv[]) {
     val_pose.zero();
 
     // joints/frame IDs for finding transformations
-    const int val_cam_frame_id = val.getJointIdByName("left_camera_optical_frame_joint");
-    const int val_torso_frame_id = val.getJointIdByName("torsoRoll");
+    // TODO: for getting the correct transformations, we need to shift the frame id by 1
+    // The reason for this is probably that DART adds the first frame by default without a joint name.
+    const int val_cam_frame_id = val.getJointIdByName(cam_frame_name)+1;
 
 #ifdef WITH_BOTTLE
     // track bottle
@@ -454,10 +465,9 @@ int main(int argc, char *argv[]) {
 #endif
 
     // track subparts of Valkyrie
-    dart::HostOnlyModel val_torso = dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", "torso", "obj");
-    //dart::HostOnlyModel val_torso = dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", "pelvis", "obj");
+    dart::HostOnlyModel val_torso = dart::readModelURDF(urdf_model_path, "torso", "obj");
 
-    const int val_torso_cam_frame_id = val_torso.getJointIdByName("left_camera_optical_frame_joint");
+    const int val_torso_cam_frame_id = val_torso.getJointIdByName(cam_frame_name)+1;
 
     tracker.addModel(val_torso,
                      0.01,    // modelSdfResolution, def = 0.002
@@ -739,8 +749,7 @@ int main(int argc, char *argv[]) {
     val_torso_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
     val_torso_mm.setPose(val_torso_pose);
     dart::SE3 Tmc = val_torso_mm.getTransformModelToFrame(val_torso_cam_frame_id);
-    dart::SE3 Tci = dart::SE3FromRotationX(M_PI/2)*dart::SE3FromRotationZ(M_PI/2);
-    val_torso_pose.setTransformModelToCamera(Tci*Tmc);
+    val_torso_pose.setTransformModelToCamera(Tmc);
 #ifdef WITH_BOTTLE
     bottle_pose.setTransformModelToCamera(T_cb);
     bottle.setPose(bottle_pose);
@@ -782,8 +791,7 @@ int main(int argc, char *argv[]) {
         val_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
         // transform coordinate origin to left camera image centre
         dart::SE3 Tmc = val.getTransformModelToFrame(val_cam_frame_id); // left_camera_optical_frame_joint
-        dart::SE3 Tci = dart::SE3FromRotationX(M_PI/2)*dart::SE3FromRotationZ(M_PI/2);
-        val_pose.setTransformModelToCamera(Tci*Tmc);    // robot to image
+        val_pose.setTransformModelToCamera(Tmc);
 #endif
 #endif
 
@@ -794,8 +802,7 @@ int main(int argc, char *argv[]) {
 #endif
             val_torso_mm.setPose(val_torso_pose);
             dart::SE3 Tmc = val_torso_mm.getTransformModelToFrame(val_torso_cam_frame_id);
-            dart::SE3 Tci = dart::SE3FromRotationX(M_PI/2)*dart::SE3FromRotationZ(M_PI/2);
-            val_torso_pose.setTransformModelToCamera(Tci*Tmc);
+            val_torso_pose.setTransformModelToCamera(Tmc);
         }
 #endif
 
