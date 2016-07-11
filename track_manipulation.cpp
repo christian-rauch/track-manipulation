@@ -45,8 +45,8 @@
 #ifdef VALKYRIE
     // read depth images from LCM topic
     #define DEPTH_SOURCE_LCM
-    //#define DEPTH_SOURCE_LCM_MULTISENSE
-    #define DEPTH_SOURCE_LCM_XTION
+    #define DEPTH_SOURCE_LCM_MULTISENSE
+    //#define DEPTH_SOURCE_LCM_XTION
     // read depth (not disparity) images from MultiSense SL, use specific camera parameters
     //#define DEPTH_SOURCE_IMAGE_MULTISENSE
 #endif
@@ -199,6 +199,45 @@ void loadReportedContacts(std::string contactFile, std::vector<int *> & contacts
     contactStream.close();
 }
 #endif
+
+namespace dart {
+
+/**
+ * @brief The NoCameraMovementPrior class
+ * Prior to prevent movement of camera, e.g. set transformation of model to camera to 0.
+ * This prior needs to be added last to enforce no transformation.
+ */
+class NoCameraMovementPrior : public Prior {
+private:
+    int _srcModelID;
+
+public:
+    NoCameraMovementPrior(const int srcModelID) : _srcModelID(srcModelID) {}
+    void computeContribution(Eigen::SparseMatrix<float> & JTJ,
+                             Eigen::VectorXf & JTe,
+                             const int * modelOffsets,
+                             const int priorParamOffset,
+                             const std::vector<MirroredModel *> & models,
+                             const std::vector<Pose> & poses,
+                             const OptimizationOptions & opts)
+    {
+        // get offsets for selected model in the full parameter space
+        const Pose & srcPose = poses[_srcModelID];
+        const int srcDims = srcPose.getReducedDimensions();
+        const int srcOffset = modelOffsets[_srcModelID];
+
+        // get step in parameter space at current optimization state
+        Eigen::VectorXf paramUpdate = JTJ.block(srcOffset,srcOffset,srcDims,srcDims).triangularView<Eigen::Upper>().solve(JTe.segment(srcOffset,srcDims));
+
+        // set camera to model transformation (first 6 parameters) to zero
+        paramUpdate.head<6>() = Eigen::VectorXf::Zero(6);
+
+        // compute jacobian and error to achieve no movement of camera frame
+        JTe.segment(srcOffset,srcDims) = JTJ.block(srcOffset,srcOffset,srcDims,srcDims) * paramUpdate;
+    }
+};
+
+}
 
 dart::Pose nullReductionPose(const dart::HostOnlyModel &model) {
     std::vector<float> jointMins, jointMaxs;
@@ -491,16 +530,20 @@ int main(int argc, char *argv[]) {
     // position priors
     // define 4 corresponding points in world camera and valkyrie camera frame
     // to fix head to reported head pose
-    const float point_weight = 1000000000;
-    dart::Point3D3DPrior val_camera_origin0(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(0, 0, 0), make_float3(0, 0, 0), point_weight);
-    dart::Point3D3DPrior val_camera_origin1(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(1, 0, 0), make_float3(1, 0, 0), point_weight);
-    dart::Point3D3DPrior val_camera_origin2(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(0, 1, 0), make_float3(0, 1, 0), point_weight);
-    dart::Point3D3DPrior val_camera_origin3(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(0, 0, 1), make_float3(0, 0, 1), point_weight);
+//    const float point_weight = 1000000000;
+//    dart::Point3D3DPrior val_camera_origin0(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(0, 0, 0), make_float3(0, 0, 0), point_weight);
+//    dart::Point3D3DPrior val_camera_origin1(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(1, 0, 0), make_float3(1, 0, 0), point_weight);
+//    dart::Point3D3DPrior val_camera_origin2(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(0, 1, 0), make_float3(0, 1, 0), point_weight);
+//    dart::Point3D3DPrior val_camera_origin3(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(0, 0, 1), make_float3(0, 0, 1), point_weight);
 
-    tracker.addPrior(&val_camera_origin0);
-    tracker.addPrior(&val_camera_origin1);
-    tracker.addPrior(&val_camera_origin2);
-    tracker.addPrior(&val_camera_origin3);
+//    tracker.addPrior(&val_camera_origin0);
+//    tracker.addPrior(&val_camera_origin1);
+//    tracker.addPrior(&val_camera_origin2);
+//    tracker.addPrior(&val_camera_origin3);
+
+    // prevent movement of the camera frame by enforcing no transformation
+    dart::NoCameraMovementPrior val_cam(tracker.getModelIDbyName("valkyrie"));
+    tracker.addPrior(&val_cam);
 #endif
 
     std::cout<<"added models: "<<tracker.getNumModels()<<std::endl;
