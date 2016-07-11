@@ -264,7 +264,15 @@ int main(int argc, char *argv[]) {
 #ifdef ENABLE_URDF
     pangolin::OpenGlMatrixSpec glK = pangolin::ProjectionMatrixRUB_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
     pangolin::OpenGlMatrix viewpoint = pangolin::ModelViewLookAt(0, 0, 0.05, 0, -0.1, 0.2, pangolin::AxisY);
+    // the MultiSense and the Xtion have different oriented frames
+#ifdef DEPTH_SOURCE_LCM_MULTISENSE
+    // Z forward, Y up
     pangolin::OpenGlRenderState camState(glK, viewpoint);
+#endif
+#ifdef DEPTH_SOURCE_LCM_XTION
+    // Z forward, Y down
+    pangolin::OpenGlRenderState camState(pangolin::OpenGlMatrix::RotateZ(M_PI)*glK, viewpoint);
+#endif
 #endif
     pangolin::View & camDisp = pangolin::Display("cam").SetAspect(640.0f/480.0f).SetHandler(new pangolin::Handler3D(camState));
 
@@ -485,9 +493,10 @@ int main(int argc, char *argv[]) {
     // to fix head to reported head pose
     const float point_weight = 1000000000;
     dart::Point3D3DPrior val_camera_origin0(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(0, 0, 0), make_float3(0, 0, 0), point_weight);
-    dart::Point3D3DPrior val_camera_origin1(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(0, 0, 1), make_float3(1, 0, 0), point_weight);
-    dart::Point3D3DPrior val_camera_origin2(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(-1, 0, 0), make_float3(0, 1, 0), point_weight);
-    dart::Point3D3DPrior val_camera_origin3(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(0, -1, 0), make_float3(0, 0, 1), point_weight);
+    dart::Point3D3DPrior val_camera_origin1(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(1, 0, 0), make_float3(1, 0, 0), point_weight);
+    dart::Point3D3DPrior val_camera_origin2(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(0, 1, 0), make_float3(0, 1, 0), point_weight);
+    dart::Point3D3DPrior val_camera_origin3(tracker.getModelIDbyName("valkyrie"), val_torso_cam_frame_id, make_float3(0, 0, 1), make_float3(0, 0, 1), point_weight);
+
     tracker.addPrior(&val_camera_origin0);
     tracker.addPrior(&val_camera_origin1);
     tracker.addPrior(&val_camera_origin2);
@@ -789,8 +798,8 @@ int main(int argc, char *argv[]) {
 #ifdef ENABLE_URDF
         // get reported Valkyrie configuration
         val_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
-        // transform coordinate origin to left camera image centre
-        dart::SE3 Tmc = val.getTransformModelToFrame(val_cam_frame_id); // left_camera_optical_frame_joint
+        // transform coordinate origin to camera image centre
+        dart::SE3 Tmc = val.getTransformModelToFrame(val_cam_frame_id);
         val_pose.setTransformModelToCamera(Tmc);
 #endif
 #endif
