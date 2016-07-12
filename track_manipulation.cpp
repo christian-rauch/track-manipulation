@@ -51,6 +51,7 @@
     //#define DEPTH_SOURCE_LCM_XTION
     // read depth (not disparity) images from MultiSense SL, use specific camera parameters
     //#define DEPTH_SOURCE_IMAGE_MULTISENSE
+    #include <dart_lcm/lcm_state_publish.hpp>
 #endif
 
 #ifdef DEPTH_SOURCE_LCM
@@ -742,6 +743,8 @@ int main(int argc, char *argv[]) {
     lcm_joints.setJointNames(val);
     // listen on channel "EST_ROBOT_STATE" in a separate thread
     lcm_joints.subscribe("EST_ROBOT_STATE");
+
+    dart::LCM_StatePublish lcm_robot_state("DART_ESTIMATE", val_torso_pose);
 #endif
 
     // -=-=-=-=- set up initial poses -=-=-=-=-
@@ -953,6 +956,8 @@ int main(int argc, char *argv[]) {
                     *poseVars[m][5] = t_cm.p[5];
                 }
 
+                // publish optimized pose
+                lcm_robot_state.publish();
             }
 
         }
