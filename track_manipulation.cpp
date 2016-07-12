@@ -237,6 +237,68 @@ public:
     }
 };
 
+class ReportedJointsPrior : public Prior {
+private:
+    // references to both pose sources for continuous updates
+    const Pose &_reported;
+    const Pose &_estimated;
+    const int _modelID;
+    const double _weight;
+
+public:
+    ReportedJointsPrior(const int modelID, const Pose &reported, const Pose &current, const double weight=1.0)
+        : _modelID(modelID), _reported(reported), _estimated(current), _weight(weight) { }
+
+    void computeContribution(Eigen::SparseMatrix<float> & fullJTJ,
+                                 Eigen::VectorXf & fullJTe,
+                                 const int * modelOffsets,
+                                 const int priorParamOffset,
+                                 const std::vector<MirroredModel *> & models,
+                                 const std::vector<Pose> & poses,
+                                 const OptimizationOptions & opts)
+    {
+        // get mapping of reported joint names and values
+        std::map<std::string, float> rep_map;
+        for(unsigned int i=0; i<_reported.getReducedArticulatedDimensions(); i++) {
+            rep_map[_reported.getReducedName(i)] = _reported.getReducedArticulation()[i];
+        }
+
+        // compute difference of reported to estimated joint value
+        Eigen::VectorXf diff = Eigen::VectorXf::Zero(_estimated.getReducedArticulatedDimensions());
+        for(unsigned int i=0; i<_estimated.getReducedArticulatedDimensions(); i++) {
+            const std::string jname = _estimated.getReducedName(i);
+            float rep = rep_map.at(jname);
+            float est = _estimated.getReducedArticulation()[i];
+            diff[i] = rep_map.at(jname) - _estimated.getReducedArticulation()[i];
+        }
+
+        // set nan values to 0, e.g. comparison of nan values always yields false
+        diff = (diff.array()!=diff.array()).select(0,diff);
+
+        // L2 norm of error vector
+        const double e = diff.norm();
+
+        // Jacobian, e.g. the partial derivation of the error w.r.t. to each joint value
+        const Eigen::VectorXf J = - diff.array() / e;
+        const Eigen::MatrixXf JTJ = J*J.transpose();
+        const Eigen::VectorXf JTe = - diff.transpose();
+
+//        fullJTJ.block(modelOffsets[_modelID], modelOffsets[_modelID],
+//                      JTJ.rows(), JTJ.cols()) = JTJ;
+
+//        fullJTe.segment(modelOffsets[_modelID], JTe.size()) = JTe;
+
+        for(unsigned int r=0; r<JTJ.rows(); r++)
+            for(unsigned int c=0; c<JTJ.cols(); c++)
+                if(JTJ(r,c)!=0)
+                    fullJTJ.coeffRef(modelOffsets[_modelID]+6+r, modelOffsets[_modelID]+6+c) += JTJ(r,c);
+
+        for(unsigned int r=0; r<JTe.rows(); r++)
+                if(JTe[r]!=0)
+                    fullJTe[modelOffsets[_modelID]+6+r] += JTe[r];
+    }
+};
+
 }
 
 dart::Pose nullReductionPose(const dart::HostOnlyModel &model) {
@@ -540,6 +602,9 @@ int main(int argc, char *argv[]) {
 //    tracker.addPrior(&val_camera_origin1);
 //    tracker.addPrior(&val_camera_origin2);
 //    tracker.addPrior(&val_camera_origin3);
+
+    dart::ReportedJointsPrior val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), 100);
+    tracker.addPrior(&val_rep);
 
     // prevent movement of the camera frame by enforcing no transformation
     dart::NoCameraMovementPrior val_cam(tracker.getModelIDbyName("valkyrie"));
