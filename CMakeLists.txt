@@ -41,6 +41,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/src
     ${GLUT_INCLUDE_DIRS}
+    include/
 )
 link_directories(
     ${CMAKE_BINARY_DIR}
@@ -53,6 +54,14 @@ link_libraries(
     ${matheval_LIBRARIES}
 )
 
+set(SRC_LIST
+    src/priors.cpp
+    )
+
+set(HDR_LIST
+    include/priors.hpp
+    )
+
 ##########################################################################
 #   Build GPU or CPU-only executable depending on cuda                   #
 ##########################################################################
@@ -64,7 +73,7 @@ cuda_include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set(CUDA_NVCC_FLAGS "-arch=sm_35" "--use_fast_math"  "-O3" "--ptxas-options=--verbose") # "-fmad=false" "-DTHRUST_DEVICE_BACKEND=THRUST_DEVICE_BACKEND_OMP"
 add_definitions(-DCUDA_BUILD)
 
-set(all_sources ${sources} ${cpu_sources} ${gpu_sources})
+set(all_sources ${sources} ${cpu_sources} ${gpu_sources} ${SRC_LIST} ${HDR_LIST})
 link_directories( ${CUDA_TOOLKIT_ROOT_DIR}/lib64/)
 
 #set(DART_ROOT ${PROJECT_SOURCE_DIR}/../dart CACHE PATH "path to the dart root directory")
