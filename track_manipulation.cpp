@@ -744,7 +744,7 @@ int main(int argc, char *argv[]) {
     // listen on channel "EST_ROBOT_STATE" in a separate thread
     lcm_joints.subscribe("EST_ROBOT_STATE");
 
-    dart::LCM_StatePublish lcm_robot_state("DART_ESTIMATE", val_torso_pose);
+    dart::LCM_StatePublish lcm_robot_state("EST_ROBOT_STATE", "DART_ESTIMATE", val_torso_pose);
 #endif
 
     // -=-=-=-=- set up initial poses -=-=-=-=-
