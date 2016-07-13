@@ -57,8 +57,9 @@ void dart::ReportedJointsPrior::computeContribution(Eigen::SparseMatrix<float> &
     // L2 norm of error vector
     const double e = _weight*diff.norm();
 
-    // Jacobian, e.g. the partial derivation of the error w.r.t. to each joint value
-    const Eigen::VectorXf J = - diff.array() / e;
+    // Jacobian of error, e.g. the partial derivation of the error w.r.t. to each joint value
+    // For an error of zero, its partial derivative is not defined. Therefore we set its derivative to 0.
+    const Eigen::VectorXf J = (diff.array()==0).select(0, -diff.array()/e);
     const Eigen::MatrixXf JTJ = J*J.transpose();
     const Eigen::VectorXf JTe = - diff.transpose();
 
