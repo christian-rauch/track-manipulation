@@ -539,8 +539,8 @@ int main(int argc, char *argv[]) {
     }
 
     // pangolin variables
-    static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
-    //static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
+    //static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
+    static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
     static pangolin::Var<bool> stepVideo("ui.stepVideo",false,false);
     static pangolin::Var<bool> stepVideoBack("ui.stepVideoBack",false,false);
 #ifdef ENABLE_URDF
@@ -765,7 +765,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef ENABLE_URDF
     // wait to get initial configuration of robot from LCM thread
-    usleep(10000);
+    usleep(100000);
     // set initial state of tracked model
     val_torso_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
     val_torso_mm.setPose(val_torso_pose);
