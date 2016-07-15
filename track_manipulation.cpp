@@ -81,6 +81,10 @@
     #define USE_CONTACT_PRIOR
 #endif
 
+#define LCM_CHANNEL_ROBOT_STATE "EST_ROBOT_STATE"
+//#define LCM_CHANNEL_ROBOT_STATE "EST_ROBOT_STATE_ORG"
+#define LCM_CHANNEL_DART_ESTIMATE "DART_ESTIMATE"
+//#define LCM_CHANNEL_DART_ESTIMATE "EST_ROBOT"
 
 using namespace std;
 
@@ -742,9 +746,9 @@ int main(int argc, char *argv[]) {
     dart::LCM_JointsProvider lcm_joints;
     lcm_joints.setJointNames(val);
     // listen on channel "EST_ROBOT_STATE" in a separate thread
-    lcm_joints.subscribe("EST_ROBOT_STATE");
+    lcm_joints.subscribe(LCM_CHANNEL_ROBOT_STATE);
 
-    dart::LCM_StatePublish lcm_robot_state("EST_ROBOT_STATE", "DART_ESTIMATE", val_torso_pose);
+    dart::LCM_StatePublish lcm_robot_state(LCM_CHANNEL_ROBOT_STATE, LCM_CHANNEL_DART_ESTIMATE, val_torso_pose);
 #endif
 
     // -=-=-=-=- set up initial poses -=-=-=-=-
