@@ -89,9 +89,11 @@ cuda_add_executable(
     #main
     track_manipulation.cpp
 )
-#target_link_libraries(track_space_justin_demo dart)
+
 target_link_libraries(track_manipulation ${dart_LIBRARIES})
 target_link_libraries(track_manipulation ${dart_urdf_LIBRARIES})
 target_link_libraries(track_manipulation ${dart_lcm_LIBRARIES})
 target_link_libraries(track_manipulation ${Boost_SYSTEM_LIBRARIES} ${Boost_THREAD_LIBRARIES})
 target_link_libraries(track_manipulation ${GLUT_LIBRARY})
+
+install(TARGETS track_manipulation RUNTIME DESTINATION bin)
