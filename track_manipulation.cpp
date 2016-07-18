@@ -560,8 +560,8 @@ int main(int argc, char *argv[]) {
     }
 
     // pangolin variables
-    //static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
-    static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
+    static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
+    //static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
     static pangolin::Var<bool> stepVideo("ui.stepVideo",false,false);
     static pangolin::Var<bool> stepVideoBack("ui.stepVideoBack",false,false);
 #ifdef ENABLE_URDF
