@@ -54,14 +54,12 @@ void dart::ReportedJointsPrior::computeContribution(Eigen::SparseMatrix<float> &
     // set nan values to 0, e.g. comparison of nan values always yields false
     diff = (diff.array()!=diff.array()).select(0,diff);
 
-    // L2 norm of error vector
-    const double e = _weight*diff.norm();
+    // get Gauss-Newton parameter for specific objective function
+    Eigen::MatrixXf J = Eigen::MatrixXf::Zero(_estimated.getReducedArticulatedDimensions(), 1);
+    Eigen::VectorXf JTe = Eigen::VectorXf::Zero(_estimated.getReducedArticulatedDimensions());
+    std::tie(J,JTe) = computeGNParam(diff);
 
-    // Jacobian of error, e.g. the partial derivation of the error w.r.t. to each joint value
-    // For an error of zero, its partial derivative is not defined. Therefore we set its derivative to 0.
-    const Eigen::VectorXf J = (diff.array()==0).select(0, -diff.array()/e);
-    const Eigen::MatrixXf JTJ = J*J.transpose();
-    const Eigen::VectorXf JTe = - diff.transpose();
+    const Eigen::MatrixXf JTJ = J.transpose()*J;
 
     for(unsigned int r=0; r<JTJ.rows(); r++)
         for(unsigned int c=0; c<JTJ.cols(); c++)
@@ -71,4 +69,19 @@ void dart::ReportedJointsPrior::computeContribution(Eigen::SparseMatrix<float> &
     for(unsigned int r=0; r<JTe.rows(); r++)
             if(JTe[r]!=0)
                 fullJTe[modelOffsets[_modelID]+6+r] += JTe[r];
+}
+
+std::tuple<Eigen::MatrixXf, Eigen::VectorXf> dart::WeightedL2NormOfError::computeGNParam(const Eigen::VectorXf &diff) {
+    // compute error from joint deviation
+    // error: weighted L2 norm of joint angle difference
+    const float e = _weight * diff.norm();
+
+    // Jacobian of error, e.g. the partial derivation of the error w.r.t. to each joint value
+    // For an error of zero, its partial derivative is not defined. Therefore we set its derivative to 0.
+    const Eigen::MatrixXf J = (diff.array()==0).select(0, -_weight * diff.array()/diff.norm());
+
+    const Eigen::VectorXf JTe = J.array()*e;
+    //const Eigen::VectorXf JTe = - _weight*_weight*diff.transpose();
+
+    return std::make_tuple(J, JTe);
 }

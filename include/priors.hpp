@@ -32,10 +32,19 @@ private:
     const Pose &_reported;
     const Pose &_estimated;
     const int _modelID;
+
+    /**
+     * @brief computeGNParam compute parameter for Gauss-Newton
+     * @param diff vector of differences in joint angles
+     * @return tuple with Jacobian J and the gradient J^T*e
+     */
+    virtual std::tuple<Eigen::MatrixXf, Eigen::VectorXf> computeGNParam(const Eigen::VectorXf &diff) = 0;
+
+protected:
     const double _weight;
 
 public:
-    ReportedJointsPrior(const int modelID, const Pose &reported, const Pose &current, const double weight=1.0);
+    explicit ReportedJointsPrior(const int modelID, const Pose &reported, const Pose &current, const double weight=1.0);
 
     void computeContribution(Eigen::SparseMatrix<float> & fullJTJ,
                                  Eigen::VectorXf & fullJTe,
@@ -44,6 +53,12 @@ public:
                                  const std::vector<MirroredModel *> & models,
                                  const std::vector<Pose> & poses,
                                  const OptimizationOptions & opts);
+};
+
+class WeightedL2NormOfError : public ReportedJointsPrior {
+    using ReportedJointsPrior::ReportedJointsPrior;
+private:
+    std::tuple<Eigen::MatrixXf, Eigen::VectorXf> computeGNParam(const Eigen::VectorXf &diff);
 };
 
 }
