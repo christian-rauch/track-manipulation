@@ -107,7 +107,6 @@ std::tuple<Eigen::MatrixXf, Eigen::VectorXf> dart::L2NormOfWeightedError::comput
 
 std::tuple<Eigen::MatrixXf, Eigen::VectorXf> dart::QWeightedError::computeGNParam(const Eigen::VectorXf &diff) {
     // compute error from joint deviation
-    // error: L2 norm of weighted joint angle difference
     const float e = diff.transpose()*_Q*diff;
 
     Eigen::MatrixXf deriv = Eigen::MatrixXf::Zero(diff.size(), 1);
@@ -116,7 +115,8 @@ std::tuple<Eigen::MatrixXf, Eigen::VectorXf> dart::QWeightedError::computeGNPara
         // original derivation
         //deriv(i) = diff.dot(_Q.row(i)) + diff.dot(_Q.col(i)) - (diff[i]*_Q(i,i));
         // negative direction, this works
-        deriv(i) = - diff.dot(_Q.row(i)) + diff.dot(_Q.col(i)) - (diff[i]*_Q(i,i));
+        //deriv(i) = - diff.dot(_Q.row(i)) + diff.dot(_Q.col(i)) - (diff[i]*_Q(i,i));
+        deriv(i) = - ( diff.dot(_Q.row(i) + _Q.col(i).transpose()) - (diff[i]*_Q(i,i)) );
     }
 
     // Jacobian of error, e.g. the partial derivation of the error w.r.t. to each joint value
