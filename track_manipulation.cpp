@@ -460,10 +460,11 @@ int main(int argc, char *argv[]) {
     // initial bottle pose in camera coordinate system, transformation camera to bottle
     // rotation according to Tait-Bryan angles: Z_1 Y_2 X_3
     // e.g. first: rotation around Z-axis, second: rotation around Y-axis, third: rotation around X-axis
-    const dart::SE3 T_cb = dart::SE3FromTranslation(0.244, -0.3036, 0.5952) * dart::SE3FromEuler(make_float3(0.2244, -0.594, -0.6732));
+    //const dart::SE3 T_cb = dart::SE3FromTranslation(0.244, -0.3036, 0.5952) * dart::SE3FromEuler(make_float3(0.2244, -0.594, -0.6732));
 
     // lcmlog__2016-06-23__13-36-34-184696__cr-ir_pattern2
-    //const dart::SE3 T_cb = dart::SE3FromTranslation(-0.02976, -0.1726, 0.5655) * dart::SE3FromEuler(make_float3(0.2244, -1.01, -1.309));
+    // multisense
+    const dart::SE3 T_cb = dart::SE3FromTranslation(-0.0357, -0.1905, 0.5833) * dart::SE3FromEuler(make_float3(-0.4862, 0.1333, -0.9519));
 #endif
 
 #ifdef WITH_BOX
@@ -509,7 +510,7 @@ int main(int argc, char *argv[]) {
 //    tracker.addPrior(&val_camera_origin2);
 //    tracker.addPrior(&val_camera_origin3);
 
-    dart::ReportedJointsPrior val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), 100);
+    dart::WeightedL2NormOfError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), 10);
     tracker.addPrior(&val_rep);
 
     // prevent movement of the camera frame by enforcing no transformation
@@ -608,7 +609,8 @@ int main(int argc, char *argv[]) {
     pangolin::Var<float> tableNormZ("opt.tableNormZ",initialTableNorm.z,-1,1);
     pangolin::Var<float> tableIntercept("opt.tableIntercept",initialTableIntercept,-1,1);
 
-    static pangolin::Var<bool> fitTable("opt.fitTable",true,true);
+    //static pangolin::Var<bool> fitTable("opt.fitTable",true,true);
+    static pangolin::Var<bool> fitTable("opt.fitTable",false,true);
 #ifdef JUSTIN
     static pangolin::Var<bool> subtractTable("opt.subtractTable",true,true);
 #endif
