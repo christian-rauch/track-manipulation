@@ -61,6 +61,12 @@ private:
     std::tuple<Eigen::MatrixXf, Eigen::VectorXf> computeGNParam(const Eigen::VectorXf &diff);
 };
 
+class L2NormOfWeightedError : public ReportedJointsPrior {
+    using ReportedJointsPrior::ReportedJointsPrior;
+private:
+    std::tuple<Eigen::MatrixXf, Eigen::VectorXf> computeGNParam(const Eigen::VectorXf &diff);
+};
+
 }
 
 #endif // PRIORS_HPP

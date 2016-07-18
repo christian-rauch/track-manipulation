@@ -1,5 +1,7 @@
 #include <priors.hpp>
 
+#include <cmath>
+
 dart::NoCameraMovementPrior::NoCameraMovementPrior(const int srcModelID) : _srcModelID(srcModelID) {}
 
 void dart::NoCameraMovementPrior::computeContribution(Eigen::SparseMatrix<float> & JTJ,
@@ -82,6 +84,20 @@ std::tuple<Eigen::MatrixXf, Eigen::VectorXf> dart::WeightedL2NormOfError::comput
 
     const Eigen::VectorXf JTe = J.array()*e;
     //const Eigen::VectorXf JTe = - _weight*_weight*diff.transpose();
+
+    return std::make_tuple(J, JTe);
+}
+
+std::tuple<Eigen::MatrixXf, Eigen::VectorXf> dart::L2NormOfWeightedError::computeGNParam(const Eigen::VectorXf &diff) {
+    // compute error from joint deviation
+    // error: L2 norm of weighted joint angle difference
+    const float e = (_weight * diff).norm();
+
+    // Jacobian of error, e.g. the partial derivation of the error w.r.t. to each joint value
+    // For an error of zero, its partial derivative is not defined. Therefore we set its derivative to 0.
+    const Eigen::MatrixXf J = (diff.array()==0).select(0, - pow(_weight, 2) * diff.array()/diff.norm());
+
+    const Eigen::VectorXf JTe = J.array()*e;
 
     return std::make_tuple(J, JTe);
 }
