@@ -127,3 +127,16 @@ std::tuple<Eigen::MatrixXf, Eigen::VectorXf> dart::QWeightedError::computeGNPara
 
     return std::make_tuple(J, JTe);
 }
+
+std::tuple<Eigen::MatrixXf, Eigen::VectorXf> dart::SimpleWeightedError::computeGNParam(const Eigen::VectorXf &diff) {
+    // compute error from joint deviation
+    const double e = (_weight*diff).norm();
+
+    // Jacobian of error, e.g. the partial derivation of the error w.r.t. to each joint value
+    // For an error of zero, its partial derivative is not defined. Therefore we set its derivative to 0.
+    const Eigen::MatrixXf J = (diff.array()==0).select(0, -diff.array()/e);
+
+    const Eigen::VectorXf JTe = - diff.transpose();
+
+    return std::make_tuple(J, JTe);
+}
