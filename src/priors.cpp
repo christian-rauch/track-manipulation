@@ -28,7 +28,10 @@ void dart::NoCameraMovementPrior::computeContribution(Eigen::SparseMatrix<float>
 }
 
 dart::ReportedJointsPrior::ReportedJointsPrior(const int modelID, const Pose &reported, const Pose &current, const double weight)
-    : _modelID(modelID), _reported(reported), _estimated(current), _weight(weight) { }
+    : _modelID(modelID), _reported(reported), _estimated(current), _weight(weight), _Q(Eigen::MatrixXf::Ones(1,1)) { }
+
+dart::ReportedJointsPrior::ReportedJointsPrior(const int modelID, const Pose &reported, const Pose &current, const Eigen::MatrixXf Q)
+    : _modelID(modelID), _reported(reported), _estimated(current), _weight(1.0), _Q(Q) { }
 
 void dart::ReportedJointsPrior::computeContribution(Eigen::SparseMatrix<float> & fullJTJ,
                              Eigen::VectorXf & fullJTe,
@@ -96,6 +99,29 @@ std::tuple<Eigen::MatrixXf, Eigen::VectorXf> dart::L2NormOfWeightedError::comput
     // Jacobian of error, e.g. the partial derivation of the error w.r.t. to each joint value
     // For an error of zero, its partial derivative is not defined. Therefore we set its derivative to 0.
     const Eigen::MatrixXf J = (diff.array()==0).select(0, - pow(_weight, 2) * diff.array()/diff.norm());
+
+    const Eigen::VectorXf JTe = J.array()*e;
+
+    return std::make_tuple(J, JTe);
+}
+
+std::tuple<Eigen::MatrixXf, Eigen::VectorXf> dart::QWeightedError::computeGNParam(const Eigen::VectorXf &diff) {
+    // compute error from joint deviation
+    // error: L2 norm of weighted joint angle difference
+    const float e = diff.transpose()*_Q*diff;
+
+    Eigen::MatrixXf deriv = Eigen::MatrixXf::Zero(diff.size(), 1);
+
+    for(unsigned int i=0; i<diff.size(); i++) {
+        // original derivation
+        //deriv(i) = diff.dot(_Q.row(i)) + diff.dot(_Q.col(i)) - (diff[i]*_Q(i,i));
+        // negative direction, this works
+        deriv(i) = - diff.dot(_Q.row(i)) + diff.dot(_Q.col(i)) - (diff[i]*_Q(i,i));
+    }
+
+    // Jacobian of error, e.g. the partial derivation of the error w.r.t. to each joint value
+    // For an error of zero, its partial derivative is not defined. Therefore we set its derivative to 0.
+    const Eigen::MatrixXf J = (diff.array()==0).select(0, deriv);
 
     const Eigen::VectorXf JTe = J.array()*e;
 

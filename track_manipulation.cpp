@@ -428,7 +428,8 @@ int main(int argc, char *argv[]) {
     // original Valkyrie model
     //const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_sim.urdf";
     // Valkyrie with attached Asus Xtion PRO LIVE
-    const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_with_xtion.urdf";
+    //const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_with_xtion.urdf";
+    const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_sim.urdf";
 
     // add Valkyrie
     std::string val_root;
@@ -510,7 +511,22 @@ int main(int argc, char *argv[]) {
 //    tracker.addPrior(&val_camera_origin2);
 //    tracker.addPrior(&val_camera_origin3);
 
-    dart::WeightedL2NormOfError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), 10);
+    // weighted L2 norm
+//    dart::WeightedL2NormOfError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), 10);
+
+    // L2 norm of weighted error
+//    dart::L2NormOfWeightedError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), 0.5);
+
+    // individually weighted joints
+    const unsigned int val_torso_dims = tracker.getPose(tracker.getModelIDbyName("valkyrie")).getReducedArticulatedDimensions();
+    Eigen::MatrixXf Q = 1 * Eigen::MatrixXf::Identity(val_torso_dims, val_torso_dims);
+
+    // change weights for left fingers in index 11..23
+    Q.block(11,11,13,13) *= 5;
+
+    //std::cout<<"Q:\n"<<Q<<std::endl;
+    dart::QWeightedError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), Q);
+
     tracker.addPrior(&val_rep);
 
     // prevent movement of the camera frame by enforcing no transformation

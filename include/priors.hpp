@@ -42,9 +42,26 @@ private:
 
 protected:
     const double _weight;
+    const Eigen::MatrixXf _Q;
 
 public:
-    explicit ReportedJointsPrior(const int modelID, const Pose &reported, const Pose &current, const double weight=1.0);
+    /**
+     * @brief ReportedJointsPrior constructor for scalar weights
+     * @param modelID ID of model in DART tracker
+     * @param reported reported pose
+     * @param current estimated pose
+     * @param weight scalar weight
+     */
+    explicit ReportedJointsPrior(const int modelID, const Pose &reported, const Pose &current, const double weight);
+
+    /**
+     * @brief ReportedJointsPrior constructor for weights in matrix form
+     * @param modelID ID of model in DART tracker
+     * @param reported reported pose
+     * @param current estimated pose
+     * @param Q square weight matrix with dimensions like joint vector
+     */
+    explicit ReportedJointsPrior(const int modelID, const Pose &reported, const Pose &current, const Eigen::MatrixXf Q);
 
     void computeContribution(Eigen::SparseMatrix<float> & fullJTJ,
                                  Eigen::VectorXf & fullJTe,
@@ -62,6 +79,12 @@ private:
 };
 
 class L2NormOfWeightedError : public ReportedJointsPrior {
+    using ReportedJointsPrior::ReportedJointsPrior;
+private:
+    std::tuple<Eigen::MatrixXf, Eigen::VectorXf> computeGNParam(const Eigen::VectorXf &diff);
+};
+
+class QWeightedError : public ReportedJointsPrior {
     using ReportedJointsPrior::ReportedJointsPrior;
 private:
     std::tuple<Eigen::MatrixXf, Eigen::VectorXf> computeGNParam(const Eigen::VectorXf &diff);
