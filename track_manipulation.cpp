@@ -465,8 +465,16 @@ int main(int argc, char *argv[]) {
 
     // lcmlog__2016-06-23__13-36-34-184696__cr-ir_pattern2
     // multisense
+#ifdef DEPTH_SOURCE_LCM_MULTISENSE
     const dart::SE3 T_cb = dart::SE3FromTranslation(-0.0357, -0.1905, 0.5833) * dart::SE3FromEuler(make_float3(-0.4862, 0.1333, -0.9519));
 #endif
+#ifdef DEPTH_SOURCE_LCM_XTION
+    // asus xtion
+    //const dart::SE3 T_cb = dart::SE3FromTranslation(0.1131, -0.07738, 0.6071) * dart::SE3FromEuler(make_float3(2.02, -2.02, 0.4862));
+    //const dart::SE3 T_cb = dart::SE3FromTranslation(0.1131, -0.07738, 0.6071) * dart::SE3FromRotationX(0.4862) * dart::SE3FromRotationY(-2.02) * dart::SE3FromRotationZ(2.02);
+    const dart::SE3 T_cb = dart::SE3FromTranslation(0.1131, -0.07738, 0.6071) * dart::SE3FromRotationX(0.4862) * dart::SE3FromRotationY(-2.02+1.04) * dart::SE3FromRotationZ(2.02);
+#endif
+#endif // BOTTLE
 
 #ifdef WITH_BOX
     // track bottle
