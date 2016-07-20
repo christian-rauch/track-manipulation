@@ -44,7 +44,9 @@ void dart::ReportedJointsPrior::computeContribution(Eigen::SparseMatrix<float> &
     // get mapping of reported joint names and values
     std::map<std::string, float> rep_map;
     for(unsigned int i=0; i<_reported.getReducedArticulatedDimensions(); i++) {
-        rep_map[_reported.getReducedName(i)] = _reported.getReducedArticulation()[i];
+        // apply lower and upper joint limits
+        rep_map[_reported.getReducedName(i)] =
+                std::min(std::max(_reported.getReducedArticulation()[i], _reported.getReducedMin(i)), _reported.getReducedMax(i));
     }
 
     // compute difference of reported to estimated joint value
