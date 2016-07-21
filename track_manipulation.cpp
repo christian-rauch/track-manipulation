@@ -520,20 +520,26 @@ int main(int argc, char *argv[]) {
 //    tracker.addPrior(&val_camera_origin3);
 
     // weighted L2 norm
-//    dart::WeightedL2NormOfError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), 10);
+    dart::WeightedL2NormOfError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), 1);
 
     // L2 norm of weighted error
 //    dart::L2NormOfWeightedError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), 0.5);
 
+//    dart::SimpleWeightedError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), 0.1);
+
     // individually weighted joints
-    const unsigned int val_torso_dims = tracker.getPose(tracker.getModelIDbyName("valkyrie")).getReducedArticulatedDimensions();
-    Eigen::MatrixXf Q = 1 * Eigen::MatrixXf::Identity(val_torso_dims, val_torso_dims);
+//    const unsigned int val_torso_dims = tracker.getPose(tracker.getModelIDbyName("valkyrie")).getReducedArticulatedDimensions();
+//    Eigen::MatrixXf Q = 1 * Eigen::MatrixXf::Identity(val_torso_dims, val_torso_dims);
 
-    // change weights for left fingers in index 11..23
-    Q.block(11,11,13,13) *= 5;
+//    // change weights for left fingers in index 11..23
+//    Q.block(11,11,13,13) *= 0.2;
+//    //Q.block(11,11,13,13) *= 2.0;
+//    // change weights for left palm roll/pitch in index 11..23
+//    //Q.block(6,6,1,1) *= 5;
+//    Q.block(6,6,1,1) *= 25;
+//    //Q.block(6,6,1,1) *= 0.2;
 
-    //std::cout<<"Q:\n"<<Q<<std::endl;
-    dart::QWeightedError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), Q);
+//    dart::QWeightedError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), Q);
 
     tracker.addPrior(&val_rep);
 
