@@ -348,7 +348,7 @@ int main(int argc, char *argv[]) {
 
     // initialise LCM depth source and listen on channel "CAMERA" in a separate thread
     dart::LCM_DepthSource<float,uchar3> *depthSource = new dart::LCM_DepthSource<float,uchar3>(val_multisense);
-    depthSource->subscribe("CAMERA");
+    depthSource->subscribe_images("CAMERA");
 
     const std::string cam_frame_name = "left_camera_optical_frame_joint";
 #endif
@@ -365,7 +365,7 @@ int main(int argc, char *argv[]) {
 
     // initialise LCM depth source and listen on channel "CAMERA" in a separate thread
     dart::LCM_DepthSource<float,uchar3> *depthSource = new dart::LCM_DepthSource<float,uchar3>(val_xtion);
-    depthSource->subscribe("OPENNI_FRAME");
+    depthSource->subscribe_images("OPENNI_FRAME");
 
     const std::string cam_frame_name = "head_xtion_joint";
 #endif
@@ -778,7 +778,7 @@ int main(int argc, char *argv[]) {
     dart::LCM_JointsProvider lcm_joints;
     lcm_joints.setJointNames(val);
     // listen on channel "EST_ROBOT_STATE" in a separate thread
-    lcm_joints.subscribe(LCM_CHANNEL_ROBOT_STATE);
+    lcm_joints.subscribe_robot_state(LCM_CHANNEL_ROBOT_STATE);
 
     dart::LCM_StatePublish lcm_robot_state(LCM_CHANNEL_ROBOT_STATE, LCM_CHANNEL_DART_PREFIX, val_torso_pose);
 #endif
@@ -993,7 +993,7 @@ int main(int argc, char *argv[]) {
                 }
 
                 // publish optimized pose
-                lcm_robot_state.publish();
+                lcm_robot_state.publish_estimate();
             }
 
         }
