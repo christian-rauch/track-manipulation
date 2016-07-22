@@ -3,6 +3,9 @@
 
 #include <dart/tracker.h>
 
+// for publishing debugging information
+#define LCM_DEBUG_GRADIENT
+
 namespace dart {
 
 /**
@@ -32,6 +35,9 @@ private:
     const Pose &_reported;
     const Pose &_estimated;
     const int _modelID;
+#ifdef LCM_DEBUG_GRADIENT
+    unsigned int _skipped;
+#endif
 
     /**
      * @brief computeGNParam compute parameter for Gauss-Newton
@@ -39,6 +45,10 @@ private:
      * @return tuple with Jacobian J and the gradient J^T*e
      */
     virtual std::tuple<Eigen::MatrixXf, Eigen::VectorXf> computeGNParam(const Eigen::VectorXf &diff) = 0;
+
+#ifdef LCM_DEBUG_GRADIENT
+    void setup();
+#endif
 
 protected:
     const double _weight;

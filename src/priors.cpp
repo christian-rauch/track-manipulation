@@ -2,6 +2,18 @@
 
 #include <cmath>
 
+// for publishing debugging information
+#define LCM_DEBUG_GRADIENT
+// publishing the gradient delays the prior computation and hence the framerate
+// raise the GRADIENT_SKIP to skip publishing for certain amount of iterations
+// set GRADIENT_SKIP to 0 to obtain all gradients
+#define GRADIENT_SKIP 6
+
+#ifdef LCM_DEBUG_GRADIENT
+#include <dart_lcm/lcm_provider_base.hpp>
+#include <lcmtypes/bot_core/joint_angles_t.hpp>
+#endif
+
 dart::NoCameraMovementPrior::NoCameraMovementPrior(const int srcModelID) : _srcModelID(srcModelID) {}
 
 void dart::NoCameraMovementPrior::computeContribution(Eigen::SparseMatrix<float> & JTJ,
@@ -28,10 +40,24 @@ void dart::NoCameraMovementPrior::computeContribution(Eigen::SparseMatrix<float>
 }
 
 dart::ReportedJointsPrior::ReportedJointsPrior(const int modelID, const Pose &reported, const Pose &current, const double weight)
-    : _modelID(modelID), _reported(reported), _estimated(current), _weight(weight), _Q(Eigen::MatrixXf::Ones(1,1)) { }
+    : _modelID(modelID), _reported(reported), _estimated(current), _weight(weight), _Q(Eigen::MatrixXf::Ones(1,1)) {
+#ifdef LCM_DEBUG_GRADIENT
+    setup();
+#endif
+}
 
 dart::ReportedJointsPrior::ReportedJointsPrior(const int modelID, const Pose &reported, const Pose &current, const Eigen::MatrixXf Q)
-    : _modelID(modelID), _reported(reported), _estimated(current), _weight(1.0), _Q(Q) { }
+    : _modelID(modelID), _reported(reported), _estimated(current), _weight(1.0), _Q(Q) {
+#ifdef LCM_DEBUG_GRADIENT
+    setup();
+#endif
+}
+
+#ifdef LCM_DEBUG_GRADIENT
+void dart::ReportedJointsPrior::setup() {
+    _skipped = 0;
+}
+#endif
 
 void dart::ReportedJointsPrior::computeContribution(Eigen::SparseMatrix<float> & fullJTJ,
                              Eigen::VectorXf & fullJTe,
@@ -49,10 +75,20 @@ void dart::ReportedJointsPrior::computeContribution(Eigen::SparseMatrix<float> &
                 std::min(std::max(_reported.getReducedArticulation()[i], _reported.getReducedMin(i)), _reported.getReducedMax(i));
     }
 
+#ifdef LCM_DEBUG_GRADIENT
+    std::vector<std::string> names;
+    const bool pub_grad = (_skipped==GRADIENT_SKIP);
+#endif
+
     // compute difference of reported to estimated joint value
     Eigen::VectorXf diff = Eigen::VectorXf::Zero(_estimated.getReducedArticulatedDimensions());
     for(unsigned int i=0; i<_estimated.getReducedArticulatedDimensions(); i++) {
         const std::string jname = _estimated.getReducedName(i);
+#ifdef LCM_DEBUG_GRADIENT
+        if(pub_grad)
+            if( !(_estimated.getReducedMin(i)==0 && _estimated.getReducedMin(i)==0) )
+                names.push_back(jname);
+#endif
         float rep = rep_map.at(jname);
         float est = _estimated.getReducedArticulation()[i];
         diff[i] = rep_map.at(jname) - _estimated.getReducedArticulation()[i];
@@ -67,6 +103,24 @@ void dart::ReportedJointsPrior::computeContribution(Eigen::SparseMatrix<float> &
     std::tie(J,JTe) = computeGNParam(diff);
 
     const Eigen::MatrixXf JTJ = J.transpose()*J;
+
+#ifdef LCM_DEBUG_GRADIENT
+    if(pub_grad) {
+        // publish gradient (JTe)
+        bot_core::joint_angles_t grad;
+        grad.num_joints = names.size();
+        grad.joint_name = names;
+        for(unsigned int i = 0; i<JTe.size(); i++) {
+            if(!(_estimated.getReducedMin(i)==0 && _estimated.getReducedMin(i)==0))
+                grad.joint_position.push_back(JTe[i]);
+        }
+        LCM_CommonBase::publish("DART_GN_GRADIENT", &grad);
+        _skipped=0;
+    }
+    else {
+        _skipped++;
+    }
+#endif
 
     for(unsigned int r=0; r<JTJ.rows(); r++)
         for(unsigned int c=0; c<JTJ.cols(); c++)
