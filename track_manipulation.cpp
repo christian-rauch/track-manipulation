@@ -598,7 +598,11 @@ int main(int argc, char *argv[]) {
     static pangolin::Var<bool> showVoxelized("ui.showVoxelized",false,true);
     static pangolin::Var<float> levelSet("ui.levelSet",0.0,-10.0,10.0);
     static pangolin::Var<bool> showTrackedPoints("ui.showPoints",true,true);
+#ifdef DEPTH_SOURCE_LCM
     static pangolin::Var<bool> showPointColour("ui.showColour",true,true);
+#else
+    static pangolin::Var<bool> showPointColour("ui.showColour",false,true);
+#endif
     static pangolin::Var<int> pointColoringObs("ui.pointColoringObs",0,0,NumPointColorings-1);
     static pangolin::Var<int> pointColoringPred("ui.pointColoringPred",0,0,NumPointColorings-1);
 
@@ -992,8 +996,10 @@ int main(int argc, char *argv[]) {
                     *poseVars[m][5] = t_cm.p[5];
                 }
 
+#ifdef DEPTH_SOURCE_LCM
                 // publish optimized pose
                 lcm_robot_state.publish_estimate();
+#endif
             }
 
         }
