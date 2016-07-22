@@ -2,12 +2,10 @@
 
 #include <cmath>
 
-// for publishing debugging information
-#define LCM_DEBUG_GRADIENT
-// publishing the gradient delays the prior computation and hence the framerate
+// filtering fixed joints delays the prior computation and hence the framerate
 // raise the GRADIENT_SKIP to skip publishing for certain amount of iterations
-// set GRADIENT_SKIP to 0 to obtain all gradients
-#define GRADIENT_SKIP 6
+// set GRADIENT_SKIP to 0 to obtain all filtered gradients
+#define GRADIENT_SKIP 8
 
 #ifdef LCM_DEBUG_GRADIENT
 #include <dart_lcm/lcm_provider_base.hpp>
@@ -41,19 +39,19 @@ void dart::NoCameraMovementPrior::computeContribution(Eigen::SparseMatrix<float>
 
 dart::ReportedJointsPrior::ReportedJointsPrior(const int modelID, const Pose &reported, const Pose &current, const double weight)
     : _modelID(modelID), _reported(reported), _estimated(current), _weight(weight), _Q(Eigen::MatrixXf::Ones(1,1)) {
-#ifdef LCM_DEBUG_GRADIENT
+#if FILTER_FIXED_JOINTS
     setup();
 #endif
 }
 
 dart::ReportedJointsPrior::ReportedJointsPrior(const int modelID, const Pose &reported, const Pose &current, const Eigen::MatrixXf Q)
     : _modelID(modelID), _reported(reported), _estimated(current), _weight(1.0), _Q(Q) {
-#ifdef LCM_DEBUG_GRADIENT
+#if FILTER_FIXED_JOINTS
     setup();
 #endif
 }
 
-#ifdef LCM_DEBUG_GRADIENT
+#if FILTER_FIXED_JOINTS
 void dart::ReportedJointsPrior::setup() {
     _skipped = 0;
 }
@@ -77,7 +75,9 @@ void dart::ReportedJointsPrior::computeContribution(Eigen::SparseMatrix<float> &
 
 #ifdef LCM_DEBUG_GRADIENT
     std::vector<std::string> names;
+#if FILTER_FIXED_JOINTS
     const bool pub_grad = (_skipped==GRADIENT_SKIP);
+#endif
 #endif
 
     // compute difference of reported to estimated joint value
@@ -85,8 +85,10 @@ void dart::ReportedJointsPrior::computeContribution(Eigen::SparseMatrix<float> &
     for(unsigned int i=0; i<_estimated.getReducedArticulatedDimensions(); i++) {
         const std::string jname = _estimated.getReducedName(i);
 #ifdef LCM_DEBUG_GRADIENT
+#if FILTER_FIXED_JOINTS
         if(pub_grad)
             if( !(_estimated.getReducedMin(i)==0 && _estimated.getReducedMin(i)==0) )
+#endif
                 names.push_back(jname);
 #endif
         float rep = rep_map.at(jname);
@@ -105,21 +107,27 @@ void dart::ReportedJointsPrior::computeContribution(Eigen::SparseMatrix<float> &
     const Eigen::MatrixXf JTJ = J.transpose()*J;
 
 #ifdef LCM_DEBUG_GRADIENT
+#if FILTER_FIXED_JOINTS
     if(pub_grad) {
+#endif
         // publish gradient (JTe)
         bot_core::joint_angles_t grad;
         grad.num_joints = names.size();
         grad.joint_name = names;
         for(unsigned int i = 0; i<JTe.size(); i++) {
+#if FILTER_FIXED_JOINTS
             if(!(_estimated.getReducedMin(i)==0 && _estimated.getReducedMin(i)==0))
+#endif
                 grad.joint_position.push_back(JTe[i]);
         }
-        LCM_CommonBase::publish("DART_GN_GRADIENT", &grad);
+        LCM_CommonBase::publish("DART_GRADIENT", &grad);
+#if FILTER_FIXED_JOINTS
         _skipped=0;
     }
     else {
         _skipped++;
     }
+#endif
 #endif
 
     for(unsigned int r=0; r<JTJ.rows(); r++)

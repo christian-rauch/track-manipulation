@@ -3,8 +3,13 @@
 
 #include <dart/tracker.h>
 
-// for publishing debugging information
+// publishing the prior gradient
 #define LCM_DEBUG_GRADIENT
+
+// filter fixed joints for shorter messages
+// this will introduce a delay and should be compensated by skip publishing for
+// a certain amount of iterations
+#define FILTER_FIXED_JOINTS 0
 
 namespace dart {
 
@@ -35,7 +40,7 @@ private:
     const Pose &_reported;
     const Pose &_estimated;
     const int _modelID;
-#ifdef LCM_DEBUG_GRADIENT
+#if FILTER_FIXED_JOINTS
     unsigned int _skipped;
 #endif
 
@@ -46,7 +51,7 @@ private:
      */
     virtual std::tuple<Eigen::MatrixXf, Eigen::VectorXf> computeGNParam(const Eigen::VectorXf &diff) = 0;
 
-#ifdef LCM_DEBUG_GRADIENT
+#if FILTER_FIXED_JOINTS
     void setup();
 #endif
 
