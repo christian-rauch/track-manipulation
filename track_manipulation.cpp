@@ -52,6 +52,7 @@
     // read depth (not disparity) images from MultiSense SL, use specific camera parameters
     //#define DEPTH_SOURCE_IMAGE_MULTISENSE
     #include <dart_lcm/lcm_state_publish.hpp>
+    #include <dart_lcm/lcm_frame_pose_publish.hpp>
 #endif
 
 #ifdef DEPTH_SOURCE_LCM
@@ -785,6 +786,7 @@ int main(int argc, char *argv[]) {
     lcm_joints.subscribe_robot_state(LCM_CHANNEL_ROBOT_STATE);
 
     dart::LCM_StatePublish lcm_robot_state(LCM_CHANNEL_ROBOT_STATE, LCM_CHANNEL_DART_PREFIX, val_torso_pose);
+    dart::LCM_FramePosePublish lcm_frame_pub("DART", val, val_torso_mm);
 #endif
 
     // -=-=-=-=- set up initial poses -=-=-=-=-
@@ -996,9 +998,12 @@ int main(int argc, char *argv[]) {
                     *poseVars[m][5] = t_cm.p[5];
                 }
 
-#ifdef DEPTH_SOURCE_LCM
+#ifdef ENABLE_LCM_JOINTS
                 // publish optimized pose
                 lcm_robot_state.publish_estimate();
+                // publish frame poses of reported and estimated model
+                lcm_frame_pub.publish_frame_pose("leftWristPitch");
+                //lcm_frame_pub.publish_frame_pose("leftElbowPitch");
 #endif
             }
 
