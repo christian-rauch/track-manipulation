@@ -36,7 +36,7 @@
 //#define JUSTIN      // using XML model and data files
 #define VALKYRIE    // using URDF model and LCM subscriptions
 
-#define WITH_BOTTLE
+//#define WITH_BOTTLE
 //#define WITH_BOX
 
 // switch depth sources
@@ -334,6 +334,14 @@ int main(int argc, char *argv[]) {
     depthSource->initialize("../depth_grasping_bottle",dart::IMAGE_PNG, make_float2(556.183166504, 556.183166504),make_float2(512,512), 1024, 1024, 0.001);
 #endif
 
+#ifdef DEPTH_SOURCE_LCM
+    // example of using log file
+    // exit after failure, used to stop publishing when end of logfile is reached
+    LCM_CommonBase::exitOnFailure(true);
+    //LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160623_cr_arm_moving_IR_pattern/bottle_move.lcmlog");
+    LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160727_cr-hand-movement-with-vicon-marker/vicon-test2.lcmlog");
+#endif
+
 #ifdef DEPTH_SOURCE_LCM_MULTISENSE
     // Valkyrie Unit D, MultiSense SL
     dart::StereoCameraParameter val_multisense;
@@ -344,12 +352,10 @@ int main(int argc, char *argv[]) {
     val_multisense.height = 1024;
     val_multisense.subpixel_resolution = 1.0/16.0;
 
-    // example of using log file
-    //LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/lcmlog__2016-04-20__18-51-14-226028__yy-wxm-table-grasping-left-hand");
-
     // initialise LCM depth source and listen on channel "CAMERA" in a separate thread
     dart::LCM_DepthSource<float,uchar3> *depthSource = new dart::LCM_DepthSource<float,uchar3>(val_multisense);
     depthSource->subscribe_images("CAMERA");
+    //depthSource->subscribe_images("CAMERA_MASKED");
 
     const std::string cam_frame_name = "left_camera_optical_frame_joint";
 #endif
@@ -521,14 +527,12 @@ int main(int argc, char *argv[]) {
 //    tracker.addPrior(&val_camera_origin3);
 
     // weighted L2 norm
-    dart::WeightedL2NormOfError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), 1);
+//    dart::WeightedL2NormOfError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), 1);
 
     // L2 norm of weighted error
 //    dart::L2NormOfWeightedError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), 0.5);
 
-//    dart::SimpleWeightedError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), 0.1);
-
-    // individually weighted joints
+//    // individually weighted joints
 //    const unsigned int val_torso_dims = tracker.getPose(tracker.getModelIDbyName("valkyrie")).getReducedArticulatedDimensions();
 //    Eigen::MatrixXf Q = 1 * Eigen::MatrixXf::Identity(val_torso_dims, val_torso_dims);
 
@@ -536,13 +540,13 @@ int main(int argc, char *argv[]) {
 //    Q.block(11,11,13,13) *= 0.2;
 //    //Q.block(11,11,13,13) *= 2.0;
 //    // change weights for left palm roll/pitch in index 11..23
-//    //Q.block(6,6,1,1) *= 5;
-//    Q.block(6,6,1,1) *= 25;
+//    Q.block(6,6,2,2) *= 5;
+//    //Q.block(6,6,2,2) *= 25;
 //    //Q.block(6,6,1,1) *= 0.2;
 
 //    dart::QWeightedError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), Q);
 
-    tracker.addPrior(&val_rep);
+//    tracker.addPrior(&val_rep);
 
     // prevent movement of the camera frame by enforcing no transformation
     dart::NoCameraMovementPrior val_cam(tracker.getModelIDbyName("valkyrie"));
@@ -575,8 +579,8 @@ int main(int argc, char *argv[]) {
     }
 
     // pangolin variables
-    static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
-    //static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
+    //static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
+    static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
     static pangolin::Var<bool> stepVideo("ui.stepVideo",false,false);
     static pangolin::Var<bool> stepVideoBack("ui.stepVideoBack",false,false);
 #ifdef ENABLE_URDF
@@ -787,6 +791,11 @@ int main(int argc, char *argv[]) {
 
     dart::LCM_StatePublish lcm_robot_state(LCM_CHANNEL_ROBOT_STATE, LCM_CHANNEL_DART_PREFIX, val_torso_pose);
     dart::LCM_FramePosePublish lcm_frame_pub("DART", val, val_torso_mm);
+
+#ifdef WITH_BOTTLE
+    dart::MirroredModel & bottle_mm = tracker.getModel(tracker.getModelIDbyName("bottle"));
+    dart::LCM_FramePosePublish lcm_object_frame_pub("DART", bottle, bottle_mm);
+#endif
 #endif
 
     // -=-=-=-=- set up initial poses -=-=-=-=-
@@ -1003,7 +1012,8 @@ int main(int argc, char *argv[]) {
                 lcm_robot_state.publish_estimate();
                 // publish frame poses of reported and estimated model
                 lcm_frame_pub.publish_frame_pose("leftWristPitch");
-                //lcm_frame_pub.publish_frame_pose("leftElbowPitch");
+
+                //lcm_object_frame_pub.publish_frame_pose("joint1");
 #endif
             }
 
