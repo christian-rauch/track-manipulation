@@ -42,6 +42,9 @@ dart::ReportedJointsPrior::ReportedJointsPrior(const int modelID, const Pose &re
 #if FILTER_FIXED_JOINTS
     setup();
 #endif
+#ifdef DBG_PRINT_JOINTS
+    printJointList();
+#endif
 }
 
 dart::ReportedJointsPrior::ReportedJointsPrior(const int modelID, const Pose &reported, const Pose &current, const Eigen::MatrixXf Q)
@@ -49,12 +52,25 @@ dart::ReportedJointsPrior::ReportedJointsPrior(const int modelID, const Pose &re
 #if FILTER_FIXED_JOINTS
     setup();
 #endif
+#ifdef DBG_PRINT_JOINTS
+    printJointList();
+#endif
 }
 
 #if FILTER_FIXED_JOINTS
 void dart::ReportedJointsPrior::setup() {
     _skipped = 0;
 }
+#endif
+
+#ifdef DBG_PRINT_JOINTS
+void dart::ReportedJointsPrior::printJointList() {
+    std::cout<<"(estimated) joint index | joint name"<<std::endl;
+    for(unsigned int i=0; i<_estimated.getReducedArticulatedDimensions(); i++) {
+        std::cout<<i<<" "<<_estimated.getReducedName(i)<<std::endl;
+    }
+}
+
 #endif
 
 void dart::ReportedJointsPrior::computeContribution(Eigen::SparseMatrix<float> & fullJTJ,
@@ -128,7 +144,7 @@ void dart::ReportedJointsPrior::computeContribution(Eigen::SparseMatrix<float> &
         _skipped++;
     }
 #endif
-#endif
+#endif // LCM_DEBUG_GRADIENT
 
     for(unsigned int r=0; r<JTJ.rows(); r++)
         for(unsigned int c=0; c<JTJ.cols(); c++)

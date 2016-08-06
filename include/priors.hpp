@@ -11,6 +11,9 @@
 // a certain amount of iterations
 #define FILTER_FIXED_JOINTS 0
 
+// activate to print joint names and ids once at initialising the joint prior
+//#define DBG_PRINT_JOINTS
+
 namespace dart {
 
 /**
@@ -53,6 +56,10 @@ private:
 
 #if FILTER_FIXED_JOINTS
     void setup();
+#endif
+
+#ifdef DBG_PRINT_JOINTS
+    void printJointList();
 #endif
 
 protected:
