@@ -532,17 +532,22 @@ int main(int argc, char *argv[]) {
     // L2 norm of weighted error
 //    dart::L2NormOfWeightedError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), 0.5);
 
-//    // individually weighted joints
+    // individually weighted joints
 //    const unsigned int val_torso_dims = tracker.getPose(tracker.getModelIDbyName("valkyrie")).getReducedArticulatedDimensions();
+//    // TODO: replace Q by sparse matrix
 //    Eigen::MatrixXf Q = 1 * Eigen::MatrixXf::Identity(val_torso_dims, val_torso_dims);
 
 //    // change weights for left fingers in index 11..23
-//    Q.block(11,11,13,13) *= 0.2;
-//    //Q.block(11,11,13,13) *= 2.0;
-//    // change weights for left palm roll/pitch in index 11..23
-//    Q.block(6,6,2,2) *= 5;
-//    //Q.block(6,6,2,2) *= 25;
-//    //Q.block(6,6,1,1) *= 0.2;
+//    for(unsigned int i=11; i<=23; i++) {
+//        Q(i,i) = 0.2;
+//        //Q(i,i) = 2.0;
+//    }
+//    // change weights for left wrist roll/pitch in index 6,7
+//    for(unsigned int i=6; i<=7; i++) {
+//        Q(i,i) = 1;
+//        //Q(i,i) = 5;
+//        //Q(i,i) = 25;
+//    }
 
 //    dart::QWeightedError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), Q);
 
