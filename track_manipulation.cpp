@@ -272,6 +272,7 @@ int main(int argc, char *argv[]) {
 #ifdef ENABLE_URDF
     pangolin::OpenGlMatrixSpec glK = pangolin::ProjectionMatrixRUB_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
     pangolin::OpenGlMatrix viewpoint = pangolin::ModelViewLookAt(0, 0, 0.05, 0, -0.1, 0.2, pangolin::AxisY);
+    //pangolin::OpenGlMatrix viewpoint = pangolin::ModelViewLookAt(0, 0, 0.05, 0, 0, 0.2, pangolin::AxisY);
     // the MultiSense and the Xtion have different oriented frames
 #ifdef DEPTH_SOURCE_LCM_MULTISENSE
     // Z forward, Y up
@@ -337,9 +338,11 @@ int main(int argc, char *argv[]) {
 #ifdef DEPTH_SOURCE_LCM
     // example of using log file
     // exit after failure, used to stop publishing when end of logfile is reached
-    LCM_CommonBase::exitOnFailure(true);
+    //LCM_CommonBase::exitOnFailure(true);
     //LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160623_cr_arm_moving_IR_pattern/bottle_move.lcmlog");
-    LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160727_cr-hand-movement-with-vicon-marker/vicon-test2.lcmlog");
+    //LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160623_cr_arm_moving_IR_pattern/box_move.lcmlog");
+    //LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160727_cr-hand-movement-with-vicon-marker/vicon-arm_movement.lcmlog");
+    //LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160727_cr-hand-movement-with-vicon-marker/vicon-finger_movement.lcmlog");
 #endif
 
 #ifdef DEPTH_SOURCE_LCM_MULTISENSE
@@ -468,12 +471,15 @@ int main(int argc, char *argv[]) {
     // initial bottle pose in camera coordinate system, transformation camera to bottle
     // rotation according to Tait-Bryan angles: Z_1 Y_2 X_3
     // e.g. first: rotation around Z-axis, second: rotation around Y-axis, third: rotation around X-axis
-    //const dart::SE3 T_cb = dart::SE3FromTranslation(0.244, -0.3036, 0.5952) * dart::SE3FromEuler(make_float3(0.2244, -0.594, -0.6732));
 
-    // lcmlog__2016-06-23__13-36-34-184696__cr-ir_pattern2
     // multisense
 #ifdef DEPTH_SOURCE_LCM_MULTISENSE
-    const dart::SE3 T_cb = dart::SE3FromTranslation(-0.0357, -0.1905, 0.5833) * dart::SE3FromEuler(make_float3(-0.4862, 0.1333, -0.9519));
+    // lcmlog__2016-04-20__18-51-14-226028__yy-wxm-table-grasping-left-hand
+    // t>1150s
+    const dart::SE3 T_cb = dart::SE3FromTranslation(0.244, -0.3036, 0.5952) * dart::SE3FromEuler(make_float3(0.2244, -0.594, -0.6732));
+
+    // lcmlog__2016-06-23__13-36-34-184696__cr-ir_pattern2
+    //const dart::SE3 T_cb = dart::SE3FromTranslation(-0.0357, -0.1905, 0.5833) * dart::SE3FromEuler(make_float3(-0.4862, 0.1333, -0.9519));
 #endif
 #ifdef DEPTH_SOURCE_LCM_XTION
     // asus xtion
@@ -484,16 +490,15 @@ int main(int argc, char *argv[]) {
 #endif // BOTTLE
 
 #ifdef WITH_BOX
-    // track bottle
+    // track box
     dart::HostOnlyModel box = dart::readModelURDF("../models/box/box.urdf");
     tracker.addModel(box, 0.5*modelSdfResolution, modelSdfPadding, 64);
     // initial bottle pose in camera coordinate system, transformation camera to bottle
     // rotation according to Tait-Bryan angles: Z_1 Y_2 X_3
     // e.g. first: rotation around Z-axis, second: rotation around Y-axis, third: rotation around X-axis
-    const dart::SE3 T_cb = dart::SE3FromTranslation(0.244, -0.3036, 0.5952) * dart::SE3FromEuler(make_float3(0.2244, -0.594, -0.6732));
 
     // lcmlog__2016-06-23__13-41-58-648227__cr-ir_pattern3
-    //const dart::SE3 T_cb = dart::SE3FromTranslation(-0.1012, -0.2143, 0.5655) * dart::SE3FromEuler(make_float3(1.122, 0.5984, -1.085));
+    const dart::SE3 T_cb = dart::SE3FromTranslation(-0.1012, -0.2143, 0.5655) * dart::SE3FromEuler(make_float3(1.122, 0.5984, -1.085));
 #endif
 
     // track subparts of Valkyrie
@@ -1046,7 +1051,8 @@ int main(int argc, char *argv[]) {
 
         glPushMatrix();
 #ifdef ENABLE_URDF
-        static pangolin::Var<bool> showAxes("ui.showAxes",true,true);
+        //static pangolin::Var<bool> showAxes("ui.showAxes",true,true);
+        static pangolin::Var<bool> showAxes("ui.showAxes",false,true);
         if(showAxes) {
             // draw coordinates axes, x: red, y: green, z: blue
             pangolin::glDrawAxis(0.5);
