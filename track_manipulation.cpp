@@ -460,9 +460,7 @@ int main(int argc, char *argv[]) {
     val_pose.zero();
 
     // joints/frame IDs for finding transformations
-    // TODO: for getting the correct transformations, we need to shift the frame id by 1
-    // The reason for this is probably that DART adds the first frame by default without a joint name.
-    const int val_cam_frame_id = val.getJointIdByName(cam_frame_name)+1;
+    const int val_cam_frame_id = val.getJointFrame(val.getJointIdByName(cam_frame_name));
 
 #ifdef WITH_BOTTLE
     // track bottle
@@ -504,7 +502,7 @@ int main(int argc, char *argv[]) {
     // track subparts of Valkyrie
     dart::HostOnlyModel val_torso = dart::readModelURDF(urdf_model_path, "torso", "obj");
 
-    const int val_torso_cam_frame_id = val_torso.getJointIdByName(cam_frame_name)+1;
+    const int val_torso_cam_frame_id = val_torso.getJointFrame(val_torso.getJointIdByName(cam_frame_name));
 
     tracker.addModel(val_torso,
                      0.01,    // modelSdfResolution, def = 0.002
