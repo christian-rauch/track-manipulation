@@ -442,16 +442,7 @@ int main(int argc, char *argv[]) {
     const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_sim.urdf";
 
     // add Valkyrie
-    std::string val_root;
-    val_root = "pelvis";
-    //val_root = "torso";
-    //val_root = "rightShoulderPitchLink";
-    //val_root = "leftShoulderPitchLink";
-    //val_root = "rightForearmLink";
-    //val_root = "rightElbowPitchLink";
-    //val_root = "rightForearmLink";
-    //dart::HostOnlyModel val = dart::readModelURDF("../models/val_description/urdf/valkyrie_sim.urdf", val_root, "obj");
-    dart::HostOnlyModel val = dart::readModelURDF(urdf_model_path, val_root, "obj");
+    dart::HostOnlyModel val = dart::readModelURDF(urdf_model_path, "pelvis");
 
     std::cout<<"found robot: "<<val.getName()<<std::endl;
 
@@ -500,7 +491,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     // track subparts of Valkyrie
-    dart::HostOnlyModel val_torso = dart::readModelURDF(urdf_model_path, "torso", "obj");
+    dart::HostOnlyModel val_torso = dart::readModelURDF(urdf_model_path, "torso");
 
     const int val_torso_cam_frame_id = val_torso.getJointFrame(val_torso.getJointIdByName(cam_frame_name));
 
