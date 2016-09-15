@@ -358,7 +358,8 @@ int main(int argc, char *argv[]) {
     // initialise LCM depth source and listen on channel "CAMERA" in a separate thread
     dart::LCM_DepthSource<float,uchar3> *depthSource = new dart::LCM_DepthSource<float,uchar3>(val_multisense);
     depthSource->subscribe_images("CAMERA");
-    //depthSource->subscribe_images("CAMERA_MASKED");
+    //depthSource->subscribe_images("CAMERA_FILTERED");
+    depthSource->setMaxDepthDistance(0.5); // meter
 
     const std::string cam_frame_name = "left_camera_optical_frame_joint";
 #endif
