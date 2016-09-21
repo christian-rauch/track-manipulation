@@ -524,9 +524,6 @@ int main(int argc, char *argv[]) {
     // weighted L2 norm
 //    dart::WeightedL2NormOfError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), 1);
 
-    // L2 norm of weighted error
-//    dart::L2NormOfWeightedError val_rep(tracker.getModelIDbyName("valkyrie"), val_pose, tracker.getPose("valkyrie"), 0.5);
-
     // individually weighted joints
 //    const unsigned int val_torso_dims = tracker.getPose(tracker.getModelIDbyName("valkyrie")).getReducedArticulatedDimensions();
 //    // TODO: replace Q by sparse matrix
