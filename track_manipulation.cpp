@@ -492,12 +492,14 @@ int main(int argc, char *argv[]) {
 #endif
 
     // track subparts of Valkyrie
-    dart::HostOnlyModel val_torso = dart::readModelURDF(urdf_model_path, "torso");
+    //const std::vector<uint8_t> colour_estimated_model = {255, 127, 0}; // orange
+    const std::vector<uint8_t> colour_estimated_model = {255, 200, 0}; // yellow-orange
+    dart::HostOnlyModel val_torso = dart::readModelURDF(urdf_model_path, "torso", "", colour_estimated_model);
 
     const int val_torso_cam_frame_id = val_torso.getJointFrame(val_torso.getJointIdByName(cam_frame_name));
 
     tracker.addModel(val_torso,
-                     0.01,    // modelSdfResolution, def = 0.002
+                     0.002,    // modelSdfResolution, def = 0.002
                      modelSdfPadding,       // modelSdfPadding, def = 0.07
                      obsSdfSize,
                      obsSdfResolution,
