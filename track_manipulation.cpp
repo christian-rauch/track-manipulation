@@ -62,6 +62,7 @@
 
 #ifdef JUSTIN
     #define ENABLE_JUSTIN
+    // filter point below table plane
 #endif
 
 #ifdef VALKYRIE
@@ -618,7 +619,9 @@ int main(int argc, char *argv[]) {
     //static pangolin::Var<bool> showReported("ui.showReported",false,true);
     static pangolin::Var<bool> showReported("ui.showReported",true,true);
 
+#ifdef JUSTIN
     static pangolin::Var<bool> showTablePlane("ui.showTablePlane",false,true);
+#endif
 
     static pangolin::Var<bool> showVoxelized("ui.showVoxelized",false,true);
     static pangolin::Var<float> levelSet("ui.levelSet",0.0,-10.0,10.0);
@@ -630,8 +633,9 @@ int main(int argc, char *argv[]) {
 #endif
     static pangolin::Var<int> pointColoringObs("ui.pointColoringObs",0,0,NumPointColorings-1);
     static pangolin::Var<int> pointColoringPred("ui.pointColoringPred",0,0,NumPointColorings-1);
-
+#ifdef JUSTIN
     static pangolin::Var<float> planeOffset("ui.planeOffset",-0.03,-0.05,0);
+#endif
 
     static pangolin::Var<int> debugImg("ui.debugImg",DebugN,0,DebugN);
 
@@ -663,18 +667,13 @@ int main(int argc, char *argv[]) {
     pangolin::Var<float> maxRotationDamping("opt.maxRotationalDamping",50,0,200);
     pangolin::Var<float> maxTranslationDamping("opt.maxTranslationDamping",5,0,10);
 
+#ifdef JUSTIN
     pangolin::Var<float> tableNormX("opt.tableNormX",initialTableNorm.x,-1,1);
     pangolin::Var<float> tableNormY("opt.tableNormY",initialTableNorm.y,-1,1);
     pangolin::Var<float> tableNormZ("opt.tableNormZ",initialTableNorm.z,-1,1);
     pangolin::Var<float> tableIntercept("opt.tableIntercept",initialTableIntercept,-1,1);
-
-    //static pangolin::Var<bool> fitTable("opt.fitTable",true,true);
-    static pangolin::Var<bool> fitTable("opt.fitTable",false,true);
-#ifdef JUSTIN
+    static pangolin::Var<bool> fitTable("opt.fitTable",true,true);
     static pangolin::Var<bool> subtractTable("opt.subtractTable",true,true);
-#endif
-#ifdef VALKYRIE
-    static pangolin::Var<bool> subtractTable("opt.subtractTable",false,true);
 #endif
 
 #ifdef USE_CONTACT_PRIOR
@@ -728,9 +727,11 @@ int main(int argc, char *argv[]) {
 #ifdef USE_CONTACT_PRIOR
     opts.contactThreshold = 0.02;
 #endif
+#ifdef JUSTIN
     opts.planeNormal[0] =  make_float3(0,0,1);
     opts.planeNormal[2] = make_float3(0,0,1);
     opts.planeNormal[1] = make_float3(0,0,0);
+#endif
     opts.regularization[0] = opts.regularization[1] = opts.regularization[2] = 0.01;
 
 #ifdef USE_CONTACT_PRIOR
@@ -930,10 +931,14 @@ int main(int argc, char *argv[]) {
         opts.regularizationScaled[1] = objectRegularization;
         opts.regularizationScaled[2] = handRegularization;
 #endif
+#ifdef JUSTIN
         opts.planeOffset[2] = planeOffset;
+#endif
         opts.lambdaObsToMod = lambdaObsToMod;
         opts.lambdaModToObs = lambdaModToObs;
+#ifdef JUSTIN
         opts.planeOffset[0] = planeOffset;
+#endif
         opts.debugObsToModDA = pointColoringObs == PointColoringDA || (debugImg == DebugObsToModDA);
         opts.debugModToObsDA = debugImg == DebugModToObsDA;
         opts.debugObsToModErr = ((pointColoringObs == PointColoringErr) || (debugImg == DebugObsToModErr));
@@ -1146,6 +1151,7 @@ int main(int argc, char *argv[]) {
 
         glPointSize(1.0f);
 
+#ifdef JUSTIN
         if (showTablePlane) {
 
             float3 normal = normalize(make_float3(tableNormX,tableNormY,tableNormZ));
@@ -1172,6 +1178,7 @@ int main(int argc, char *argv[]) {
             glEnd();
 
         }
+#endif
 
         if (showObsSdf) {
             static pangolin::Var<float> levelSet("ui.levelSet",0,-10,10);
@@ -1586,6 +1593,7 @@ int main(int argc, char *argv[]) {
             }
 #endif
 
+#ifdef JUSTIN
             static pangolin::Var<float> planeFitNormThresh("opt.planeNormThresh",0.25,-1,1);
             static pangolin::Var<float> planeFitDistThresh("opt.planeDistThresh",0.005,0.0001,0.005);
 
@@ -1613,6 +1621,7 @@ int main(int argc, char *argv[]) {
                 tracker.subtractPlane(make_float3(tableNormX,tableNormY,tableNormZ),
                                       tableIntercept,0.005,-1.01);
             }
+#endif
 
 #ifdef ENABLE_JUSTIN
             float totalPerPointError = optimizer.getErrPerObsPoint(1,0) + optimizer.getErrPerModPoint(1,0);
