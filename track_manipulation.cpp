@@ -969,7 +969,10 @@ int main(int argc, char *argv[]) {
             // run optimization method
             if (trackFromVideo || iteratePushed ) {
 
-                tracker.optimizePoses();
+                // workaround: we need to wait 1 frame before starting optimization
+                // otherwise, the no movement prior produces a wrong update
+                if(pangolinFrame>1)
+                    tracker.optimizePoses();
 
                 // update accumulated info
                 for (int m=0; m<tracker.getNumModels(); ++m) {
