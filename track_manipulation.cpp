@@ -220,6 +220,15 @@ dart::Pose nullReductionPose(const dart::HostOnlyModel &model) {
                     jointMins.data(), jointMaxs.data(), jointNames.data()));
 }
 
+// debugging function to print all joint positions stored in a pose
+void printPoseJoints(dart::Pose &pose) {
+    const uint ndims = pose.getReducedArticulatedDimensions();
+    std::cout<<"reduced joints ("<<ndims<<"):"<<std::endl;
+    for(uint i=0; i<ndims; i++) {
+        std::cout<<i<<" "<<pose.getReducedName(i)<<": "<<pose.getReducedArticulation()[i]<<std::endl;
+    }
+}
+
 #ifdef ENABLE_JUSTIN
 static const dart::SE3 initialT_cj(make_float4(-0.476295, -0.0945505, -0.874187, -0.22454),
                                    make_float4(-0.625852, 0.734788, 0.26152, -0.305038   ),
