@@ -38,6 +38,7 @@
 
 //#define WITH_BOTTLE
 //#define WITH_BOX
+#define WITH_RECT
 
 // switch depth sources
 #ifdef JUSTIN
@@ -347,11 +348,12 @@ int main(int argc, char *argv[]) {
 #ifdef DEPTH_SOURCE_LCM
     // example of using log file
     // exit after failure, used to stop publishing when end of logfile is reached
-    //LCM_CommonBase::exitOnFailure(true);
+//    LCM_CommonBase::exitOnFailure(true);
     //LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160623_cr_arm_moving_IR_pattern/bottle_move.lcmlog");
+//    LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160623_cr_arm_moving_IR_pattern/bottle_move-filtered_b120.lcmlog");
     //LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160623_cr_arm_moving_IR_pattern/box_move.lcmlog");
-    //LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160727_cr-hand-movement-with-vicon-marker/vicon-arm_movement.lcmlog");
-    //LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160727_cr-hand-movement-with-vicon-marker/vicon-finger_movement.lcmlog");
+//    LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160727_cr-hand-movement-with-vicon-marker/vicon-arm_movement.lcmlog");
+//    LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160727_cr-hand-movement-with-vicon-marker/vicon-finger_movement.lcmlog");
 #endif
 
 #ifdef DEPTH_SOURCE_LCM_MULTISENSE
@@ -368,7 +370,7 @@ int main(int argc, char *argv[]) {
     dart::LCM_DepthSource<float,uchar3> *depthSource = new dart::LCM_DepthSource<float,uchar3>(val_multisense);
     depthSource->subscribe_images("CAMERA");
     //depthSource->subscribe_images("CAMERA_FILTERED");
-    depthSource->setMaxDepthDistance(0.5); // meter
+    //depthSource->setMaxDepthDistance(1.0); // meter
 
     const std::string cam_frame_name = "left_camera_optical_frame_joint";
 #endif
@@ -478,7 +480,11 @@ int main(int argc, char *argv[]) {
     const dart::SE3 T_cb = dart::SE3FromTranslation(0.244, -0.3036, 0.5952) * dart::SE3FromEuler(make_float3(0.2244, -0.594, -0.6732));
 
     // lcmlog__2016-06-23__13-36-34-184696__cr-ir_pattern2
-    //const dart::SE3 T_cb = dart::SE3FromTranslation(-0.0357, -0.1905, 0.5833) * dart::SE3FromEuler(make_float3(-0.4862, 0.1333, -0.9519));
+//    const dart::SE3 T_cb = dart::SE3FromTranslation(-0.0357, -0.1905, 0.5833) * dart::SE3FromEuler(make_float3(-0.4862, 0.1333, -0.9519));
+
+    // dbg: place object far away
+    // workaround for data points no being assigned to single object when tracking
+//    const dart::SE3 T_cb = dart::SE3FromTranslation(-1, -1, 1) * dart::SE3FromEuler(make_float3(-0.4862, 0.1333, -0.9519));
 #endif
 #ifdef DEPTH_SOURCE_LCM_XTION
     // asus xtion
@@ -498,6 +504,12 @@ int main(int argc, char *argv[]) {
 
     // lcmlog__2016-06-23__13-41-58-648227__cr-ir_pattern3
     const dart::SE3 T_cb = dart::SE3FromTranslation(-0.1012, -0.2143, 0.5655) * dart::SE3FromEuler(make_float3(1.122, 0.5984, -1.085));
+#endif
+
+#ifdef WITH_RECT
+    dart::HostOnlyModel object = dart::readModelURDF("../models/rect_bar/rect.urdf");
+    tracker.addModel(object, 0.5*modelSdfResolution, modelSdfPadding, 64);
+    const dart::SE3 T_cb = dart::SE3FromTranslation(0.2381, -0.2917, 0.5774) * dart::SE3FromEuler(make_float3(0.4488, -0.3366, 0.7854));
 #endif
 
     // track subparts of Valkyrie
@@ -587,7 +599,7 @@ int main(int argc, char *argv[]) {
     }
 
     // pangolin variables
-    //static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
+//    static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
     static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
     static pangolin::Var<bool> stepVideo("ui.stepVideo",false,false);
     static pangolin::Var<bool> stepVideoBack("ui.stepVideoBack",false,false);
@@ -772,6 +784,9 @@ int main(int argc, char *argv[]) {
 #ifdef WITH_BOX
     dart::Pose & box_pose = tracker.getPose("box");
 #endif
+#ifdef WITH_RECT
+    dart::Pose &object_pose = tracker.getPose("rect");
+#endif
 #endif
 
 
@@ -837,6 +852,10 @@ int main(int argc, char *argv[]) {
 #ifdef WITH_BOX
     box_pose.setTransformModelToCamera(T_cb);
     box.setPose(box_pose);
+#endif
+#ifdef WITH_RECT
+    object_pose.setTransformModelToCamera(T_cb);
+    object.setPose(object_pose);
 #endif
 #endif
 
@@ -1463,7 +1482,6 @@ int main(int argc, char *argv[]) {
         pangolin::FinishFrame();
 
         if (pangolin::Pushed(stepVideo) || trackFromVideo || pangolinFrame == 1) {
-
 #ifdef ENABLE_JUSTIN
             tracker.stepForward();
 
