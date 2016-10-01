@@ -38,7 +38,7 @@
 
 //#define WITH_BOTTLE
 //#define WITH_BOX
-#define WITH_RECT
+//#define WITH_RECT
 
 // switch depth sources
 #ifdef JUSTIN
@@ -371,7 +371,7 @@ int main(int argc, char *argv[]) {
     dart::LCM_DepthSource<float,uchar3> *depthSource = new dart::LCM_DepthSource<float,uchar3>(val_multisense);
     depthSource->subscribe_images("CAMERA");
     //depthSource->subscribe_images("CAMERA_FILTERED");
-    //depthSource->setMaxDepthDistance(1.0); // meter
+    depthSource->setMaxDepthDistance(1.0); // meter
 
     const std::string cam_frame_name = "left_camera_optical_frame_joint";
 #endif
@@ -521,7 +521,7 @@ int main(int argc, char *argv[]) {
     const int val_torso_cam_frame_id = val_torso.getJointFrame(val_torso.getJointIdByName(cam_frame_name));
 
     tracker.addModel(val_torso,
-                     0.002,    // modelSdfResolution, def = 0.002
+                     modelSdfResolution,    // modelSdfResolution, def = 0.002
                      modelSdfPadding,       // modelSdfPadding, def = 0.07
                      obsSdfSize,
                      obsSdfResolution,
