@@ -643,6 +643,7 @@ int main(int argc, char *argv[]) {
     static pangolin::Var<bool> showPredictedPoints("ui.showPredictedPoints",false,true);
     static pangolin::Var<bool> showCollisionClouds("ui.showCollisionClouds",false,true);
 
+    static pangolin::Var<bool> record("ui.Record Start/Stop",false,false);
     static pangolin::Var<float> fps("ui.fps",0);
 
     // optimization options
@@ -1484,6 +1485,10 @@ int main(int argc, char *argv[]) {
         cudaError_t err = cudaGetLastError();
         if (err != cudaSuccess) {
             std::cerr << cudaGetErrorString(err) << std::endl;
+        }
+
+        if(pangolin::Pushed(record)) {
+                pangolin::DisplayBase().RecordOnRender("ffmpeg:[fps=50,bps=8388608,unique_filename]//screencap.avi");
         }
 
         pangolin::FinishFrame();
