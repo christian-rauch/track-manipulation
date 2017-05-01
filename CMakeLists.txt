@@ -62,6 +62,15 @@ set(HDR_LIST
     include/priors.hpp
     )
 
+###########################################
+# generate custom LCM messages
+set(LCM_MSGS
+    lcmtypes/image_class.lcm
+    lcmtypes/image_class_probability_t.lcm
+    )
+add_custom_target(lcm_msgs ALL lcm-gen -x ${LCM_MSGS} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(img_classif_msgs)
+
 ##########################################################################
 #   Build GPU or CPU-only executable depending on cuda                   #
 ##########################################################################
@@ -90,10 +99,15 @@ cuda_add_executable(
     track_manipulation.cpp
 )
 
+add_library(sdf_prior src/SDFPrior.cpp include/SDFPrior.hpp)
+add_library(segm_prior src/SegmentationPrior.cpp include/SegmentationPrior.hpp)
+
 target_link_libraries(track_manipulation ${dart_LIBRARIES})
 target_link_libraries(track_manipulation ${dart_urdf_LIBRARIES})
 target_link_libraries(track_manipulation ${dart_lcm_LIBRARIES})
 target_link_libraries(track_manipulation ${Boost_SYSTEM_LIBRARIES} ${Boost_THREAD_LIBRARIES})
 target_link_libraries(track_manipulation ${GLUT_LIBRARY})
+target_link_libraries(track_manipulation sdf_prior)
+target_link_libraries(track_manipulation segm_prior)
 
 install(TARGETS track_manipulation RUNTIME DESTINATION bin)

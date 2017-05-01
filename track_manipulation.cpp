@@ -29,6 +29,8 @@
 #include <dart/visualization/sdf_viz.h>
 
 #include <priors.hpp>
+#include <SDFPrior.hpp>
+#include <SegmentationPrior.hpp>
 
 #define EIGEN_DONT_ALIGN
 
@@ -531,6 +533,15 @@ int main(int argc, char *argv[]) {
                      true      // cacheSdfs
                      );
 
+
+//    SDFPrior sdf_prior(tracker);
+//    tracker.addPrior(&sdf_prior);
+
+    // segmentation prior
+    SegmentationPrior segm_prior(tracker);
+    tracker.addPrior(&segm_prior);
+
+
     // position priors
     // define 4 corresponding points in world camera and valkyrie camera frame
     // to fix head to reported head pose
@@ -723,7 +734,10 @@ int main(int argc, char *argv[]) {
 
 
     dart::OptimizationOptions & opts = tracker.getOptions();
-    opts.lambdaObsToMod = 1;
+    //opts.lambdaObsToMod = 1;
+    opts.lambdaObsToMod = 0;
+    opts.dataAssociation = None;
+//    opts.dataAssociation = MinSDF;
     memset(opts.lambdaIntersection.data(),0,tracker.getNumModels()*tracker.getNumModels()*sizeof(float));
 #ifdef USE_CONTACT_PRIOR
     opts.contactThreshold = 0.02;

@@ -1,0 +1,10 @@
+package img_classif_msgs; // needed to generate file "__init__.py"
+
+struct image_class_t {
+    int64_t utime;                      // micro seconds since the epoch
+
+    int32_t width;                      // number of columns in matrix
+    int32_t height;                     // number of rows in matrix
+
+    int16_t class_id[height][width];    // row-major, class id with the highest probability
+}

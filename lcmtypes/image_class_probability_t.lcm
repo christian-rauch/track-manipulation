@@ -1,0 +1,9 @@
+package img_classif_msgs; // needed to generate file "__init__.py"
+
+struct image_class_probability_t {
+    int64_t utime;                          // micro seconds since the epoch
+
+    int64_t nprobabilities;
+    int16_t position[3][nprobabilities]; // x, y, class_id
+    float probability[nprobabilities]; // probability of pixel at (x,y) to be of class=class_id
+}
