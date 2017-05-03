@@ -5,6 +5,8 @@
 #include <fstream>
 #define PRNT_DA
 
+#include <set>
+
 #define SDF_DA
 #define CLASSIF_DA
 
@@ -83,20 +85,55 @@ void SegmentationPrior::computeContribution(
 #endif
 #endif
 #ifdef CLASSIF_DA
+        // reset _lastElements counter on host and device
+        cudaMemset(tracker.getOptimizer()->_lastElements->devicePtr(),0,sizeof(int));
+        tracker.getOptimizer()->_lastElements->syncDeviceToHost();
         CheckCudaDieOnError();
+
+        // host copy of observed points
+        std::vector<float4> points(ndata);
+        cudaMemcpy(points.data(), tracker.getPointCloudSource().getDeviceVertMap(), ndata*sizeof(float4), cudaMemcpyDefault);
+//        uint nverts_valid = 0;
+//        for(const float4 &v : points) {
+//            if(v.w>0) nverts_valid++;
+//        }
+//        std::cout << "valid nverts: " << nverts_valid << std::endl;
+        CheckCudaDieOnError();
+
+        //std::set<uint> valid_index;
+        std::vector<uint> valid_index;
         std::vector<DataAssociatedPoint> dpoints;
-        // index = x + y*width;
-        for(uint h(0); h<img_class.rows(); h++) {
-            for(uint w(0); w<img_class.cols(); w++) {
-                if(img_class(h,w)!=0) {
+        for(uint iw(0); iw<w; iw++) {
+            for(uint ih(0); ih<h; ih++) {
+                const uint index = iw + ih*w;
+                //if(points[index].w>0) { valid_index.insert(index); }
+                if(points[index].w>0) { valid_index.push_back(index); }
+                if(points[index].w>0) {
                     DataAssociatedPoint da;
-                    da.index = w + h*img_class.cols();
-                    da.dataAssociation = img_class(h,w);
-                    da.error = 0.5; // > huberDelta: 0.02
+                    // get predicted class
+                    da.index = index;
+                    da.dataAssociation = img_class(ih,iw);
+                    da.error = 0.05; // TODO: this is interpreted as the SDF
                     dpoints.push_back(da);
                 }
             }
         }
+        std::cout << "valid nverts: " << valid_index.size() << std::endl;
+
+        CheckCudaDieOnError();
+
+        // index = x + y*width;
+//        for(uint h(0); h<img_class.rows(); h++) {
+//            for(uint w(0); w<img_class.cols(); w++) {
+//                if(img_class(h,w)!=0) {
+//                    DataAssociatedPoint da;
+//                    da.index = w + h*img_class.cols();
+//                    da.dataAssociation = img_class(h,w);
+//                    da.error = 0.5; // > huberDelta: 0.02
+//                    dpoints.push_back(da);
+//                }
+//            }
+//        }
 
         // set number of points, only used at host
         //(*tracker.getOptimizer()->_lastElements)[i] = dpoints.size();
@@ -117,12 +154,15 @@ void SegmentationPrior::computeContribution(
         CheckCudaDieOnError();
 
 
-        std::cout << i << " model ID: " << models[i]->getModelID() << std::endl;
-        std::cout << "sdfs: " << models[i]->getNumSdfs() << std::endl;
-        //models[i]->getDeviceSdfFrames();
-        for(uint s(0); s<models[i]->getNumSdfs(); s++) {
-            std::cout << s << " " << models[i]->getSdfFrameNumber(s) << std::endl;
-        }
+//        std::cout << i << " model ID: " << models[i]->getModelID() << std::endl;
+//        std::cout << "sdfs: " << models[i]->getNumSdfs() << std::endl;
+//        //models[i]->getDeviceSdfFrames();
+//        for(uint s(0); s<models[i]->getNumSdfs(); s++) {
+//            std::cout << s << " " << models[i]->getSdfFrameNumber(s) << std::endl;
+//        }
+
+//        cudaMemset(tracker.getOptimizer()->_lastElements->devicePtr(),0,sizeof(int));
+//        tracker.getOptimizer()->_lastElements->syncDeviceToHost();
 
         // ammend available data
         int le_h, le_d;
@@ -140,37 +180,69 @@ void SegmentationPrior::computeContribution(
         cudaMemcpy(da, tracker.getOptimizer()->_dPts->hostPtr()[i], ndata*sizeof(DataAssociatedPoint), cudaMemcpyDeviceToHost);
         CheckCudaDieOnError();
 
-
-
-        //std::cout << (*tracker.getOptimizer()->_lastElements)[i] << std::endl;
-//        cudaMemset(tracker.getOptimizer()->_lastElements->devicePtr(),0,sizeof(int));
-//        tracker.getOptimizer()->_lastElements->syncDeviceToHost();
         std::cout << tracker.getOptimizer()->_lastElements->hostPtr()[i] << std::endl;
-        //(*tracker.getOptimizer()->_lastElements)[i] = 44;
-        //(*tracker.getOptimizer()->_lastElements)[i] = ndata;
-//        tracker.getOptimizer()->_lastElements->hostPtr()[i] = 44;
-        tracker.getOptimizer()->_lastElements->hostPtr()[i] = 23000;
-//        tracker.getOptimizer()->_lastElements->syncHostToDevice();
+        const int orgle = tracker.getOptimizer()->_lastElements->hostPtr()[i];
+        tracker.getOptimizer()->_lastElements->hostPtr()[i] = 24000;
+//        tracker.getOptimizer()->_lastElements->hostPtr()[i] = dpoints.size();
 
         // add some points
         //tracker.getOptimizer()->_lastElements->hostPtr()[i] += 10;
 
-//        Eigen::MatrixXd das(ndata,3);
-        for(uint ida(0); ida<ndata; ida++) {
-            //std::cout << da[ida].index << " " << da[ida].dataAssociation << " " << da[ida].error << std::endl;
-            //da[ida].index = 10+ida;
-            da[ida].index = 33;
+        tracker.getOptimizer()->_lastElements->syncHostToDevice();
+
+        //for(uint ida(0); ida<ndata; ida++) {
+        for(uint ida(0); ida<valid_index.size(); ida++) {
+//            if(ida>=orgle) {
+//                //da[ida].index = 263886; // seems to work partially for fake data (if w>0)
+//                da[ida].index = 1000;
+//                //da[ida].index = valid_index[0];
+//            }
+            //da[ida].index = valid_index[ida];
+            da[ida].index = valid_index.at(ida);
             da[ida].dataAssociation = 5;
-            //da[ida].dataAssociation = 0;
             //da[ida].error = 0.0005;
-            da[ida].error = 0.00475171;
-            //das.row(ida) << da[ida].index, da[ida].dataAssociation, da[ida].error;
+            //da[ida].error = 0.00475171;
+            da[ida].error = 0.05;
         }
-//        const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, " ", "\n");
-//        const std::string fname = "dPts_host.csv";
-//        std::ofstream csvfile(fname.c_str());
-//        csvfile << das.format(CSVFormat);
-//        csvfile.close();
+
+        //tracker.getOptimizer()->_lastElements->hostPtr()[i] = valid_index.size()-1;
+        tracker.getOptimizer()->_lastElements->hostPtr()[i] = 25000;
+        //tracker.getOptimizer()->_lastElements->hostPtr()[i] = 50000;
+        //tracker.getOptimizer()->_lastElements->hostPtr()[i] = 100000;
+        tracker.getOptimizer()->_lastElements->syncHostToDevice();
+
+//        uint valid_ida = 0;
+//        for(uint ida(0); ida<ndata; ida++) {
+//            if(points[ida].w>0) {
+//                da[valid_ida].index = ida;
+//                da[valid_ida].dataAssociation = 5;
+//                //da[ida].error = 0.0005;
+//                da[valid_ida].error = 0.00475171;
+//                //das.row(ida) << da[ida].index, da[ida].dataAssociation, da[ida].error;
+//                valid_ida++;
+//            }
+//        }
+//        tracker.getOptimizer()->_lastElements->hostPtr()[i] = valid_ida;
+//        tracker.getOptimizer()->_lastElements->syncHostToDevice();
+
+//        uint ida = 0;
+//        for(uint iw(0); iw<w; iw++) { for(uint ih(0); ih<h; ih++) {
+//                const uint index = iw + ih*w;
+//                if(points[index].w>0) {
+////                    DataAssociatedPoint da;
+////                    // get predicted class
+////                    da.index = index;
+////                    da.dataAssociation = img_class(ih,iw);
+////                    da.error = 0.05; // TODO: this is interpreted as the SDF
+//                    da[ida].index = index;
+//                    da[ida].dataAssociation = 5; // replace by img_class(ih,iw)
+//                    //da[ida].error = 0.05;
+//                    da[ida].error = 0;
+//                    ida++;
+//                }
+//        } } // w,h
+//        tracker.getOptimizer()->_lastElements->hostPtr()[i] = ida;
+//        tracker.getOptimizer()->_lastElements->syncHostToDevice();
 
         // host to dev
         cudaMemcpy(tracker.getOptimizer()->_dPts->hostPtr()[i], da, ndata*sizeof(DataAssociatedPoint),cudaMemcpyHostToDevice);
@@ -197,22 +269,32 @@ void SegmentationPrior::computeContribution(
         OptimizationOptions fake_opts(opts);
         fake_opts.lambdaObsToMod = 1.0;
 
-
         DataAssociatedPoint *da2;
         cudaMallocHost(&da2, ndata*sizeof(DataAssociatedPoint));
         cudaMemcpy(da2, tracker.getOptimizer()->_dPts->hostPtr()[i], ndata*sizeof(DataAssociatedPoint), cudaMemcpyDeviceToHost);
+        CheckCudaDieOnError();
         float4 *verts;
         cudaMallocHost(&verts, ndata*sizeof(float4));
         cudaMemcpy(verts, observation.dVertMap, ndata*sizeof(float4), cudaMemcpyDeviceToHost);
+        CheckCudaDieOnError();
         for(uint ida(0); ida<tracker.getOptimizer()->_lastElements->hostPtr()[i]; ida++) {
             std::cout << ida << " " << da2[ida].index << " " << da2[ida].dataAssociation << " " << da2[ida].error << std::endl;
             //const float4 vert = observation.dVertMap[tracker.getOptimizer()->_dPts->hostPtr()[i][ida].index];
             //const float4 vert = observation.dVertMap[da2[ida].index];
             const float4 vert = verts[da2[ida].index];
-            std::cout << vert.x << " " << vert.y << " " << vert.z << std::endl;
+            std::cout << vert.x << " " << vert.y << " " << vert.z << " " << vert.w << std::endl;
         }
-        cudaFree(da2);
-        cudaFree(verts);
+
+        uint nverts = 0;
+        for(uint iv(0); iv<ndata; iv++) {
+            if(verts[iv].w > 0)
+                nverts++ ;
+        }
+        std::cout << "verts: " << nverts << std::endl;
+
+        cudaFreeHost(da2);
+        cudaFreeHost(verts);
+        CheckCudaDieOnError();
 
         Eigen::MatrixXf denseJTJ(JTJ);
         tracker.getOptimizer()->computeObsToModContribution(JTe,denseJTJ,obsToModError,*models[i],poses[i],fake_opts,observation);
@@ -278,9 +360,9 @@ void SegmentationPrior::computeContribution(
         // index = x + y*width;
         for(uint j(0); j<le; j++) {
 //            std::cout << da[j].index << " " << da[j].dataAssociation << " " << da[j].error << std::endl;
-//            if(da[j].index!=0) {
-//                std::cout << da[j].index << " " << da[j].dataAssociation << " " << da[j].error << std::endl;
-//            }
+            if(da[j].index!=0) {
+                std::cout << da[j].index << " " << da[j].dataAssociation << " " << da[j].error << std::endl;
+            }
             const uint x = da[j].index%w;
 //            CheckCudaDieOnError();
             const uint y = (x==0) ? da[j].index : da[j].index/w;
