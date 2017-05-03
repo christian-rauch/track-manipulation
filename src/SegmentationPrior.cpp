@@ -86,9 +86,9 @@ void SegmentationPrior::computeContribution(
 #endif
 #ifdef CLASSIF_DA
         // reset _lastElements counter on host and device
-        cudaMemset(tracker.getOptimizer()->_lastElements->devicePtr(),0,sizeof(int));
-        tracker.getOptimizer()->_lastElements->syncDeviceToHost();
-        CheckCudaDieOnError();
+//        cudaMemset(tracker.getOptimizer()->_lastElements->devicePtr(),0,sizeof(int));
+//        tracker.getOptimizer()->_lastElements->syncDeviceToHost();
+//        CheckCudaDieOnError();
 
         // host copy of observed points
         std::vector<float4> points(ndata);
@@ -182,13 +182,13 @@ void SegmentationPrior::computeContribution(
 
         std::cout << tracker.getOptimizer()->_lastElements->hostPtr()[i] << std::endl;
         const int orgle = tracker.getOptimizer()->_lastElements->hostPtr()[i];
-        tracker.getOptimizer()->_lastElements->hostPtr()[i] = 24000;
+//        tracker.getOptimizer()->_lastElements->hostPtr()[i] = 24000;
 //        tracker.getOptimizer()->_lastElements->hostPtr()[i] = dpoints.size();
 
         // add some points
         //tracker.getOptimizer()->_lastElements->hostPtr()[i] += 10;
 
-        tracker.getOptimizer()->_lastElements->syncHostToDevice();
+//        tracker.getOptimizer()->_lastElements->syncHostToDevice();
 
         //for(uint ida(0); ida<ndata; ida++) {
         for(uint ida(0); ida<valid_index.size(); ida++) {
@@ -198,7 +198,7 @@ void SegmentationPrior::computeContribution(
 //                //da[ida].index = valid_index[0];
 //            }
             //da[ida].index = valid_index[ida];
-            da[ida].index = valid_index.at(ida);
+//            da[ida].index = valid_index.at(ida);
             da[ida].dataAssociation = 5;
             //da[ida].error = 0.0005;
             //da[ida].error = 0.00475171;
@@ -206,10 +206,10 @@ void SegmentationPrior::computeContribution(
         }
 
         //tracker.getOptimizer()->_lastElements->hostPtr()[i] = valid_index.size()-1;
-        tracker.getOptimizer()->_lastElements->hostPtr()[i] = 25000;
+//        tracker.getOptimizer()->_lastElements->hostPtr()[i] = 25000;
         //tracker.getOptimizer()->_lastElements->hostPtr()[i] = 50000;
         //tracker.getOptimizer()->_lastElements->hostPtr()[i] = 100000;
-        tracker.getOptimizer()->_lastElements->syncHostToDevice();
+//        tracker.getOptimizer()->_lastElements->syncHostToDevice();
 
 //        uint valid_ida = 0;
 //        for(uint ida(0); ida<ndata; ida++) {
@@ -335,7 +335,7 @@ void SegmentationPrior::computeContribution(
         CheckCudaDieOnError();
         //cudaMemcpy(da, (*tracker.getOptimizer()->_dPts)[imod], ndata*sizeof(DataAssociatedPoint),cudaMemcpyDeviceToHost);
         //const cudaError_t ret = cudaMemcpy(da, tracker.getOptimizer()->_dPts->hostPtr()[imod], ndata*sizeof(DataAssociatedPoint),cudaMemcpyDeviceToHost);
-        const cudaError_t ret = cudaMemcpy(da, tracker.getOptimizer()->_dPts->hostPtr()[imod], 1*sizeof(DataAssociatedPoint),cudaMemcpyDeviceToHost);
+        const cudaError_t ret = cudaMemcpy(da, tracker.getOptimizer()->_dPts->hostPtr()[imod], ndata*sizeof(DataAssociatedPoint),cudaMemcpyDeviceToHost);
         switch(ret) {
         case cudaSuccess:
             std::cout << "cudaSuccess" << std::endl; break;
@@ -360,9 +360,9 @@ void SegmentationPrior::computeContribution(
         // index = x + y*width;
         for(uint j(0); j<le; j++) {
 //            std::cout << da[j].index << " " << da[j].dataAssociation << " " << da[j].error << std::endl;
-            if(da[j].index!=0) {
-                std::cout << da[j].index << " " << da[j].dataAssociation << " " << da[j].error << std::endl;
-            }
+//            if(da[j].index!=0) {
+//                std::cout << da[j].index << " " << da[j].dataAssociation << " " << da[j].error << std::endl;
+//            }
             const uint x = da[j].index%w;
 //            CheckCudaDieOnError();
             const uint y = (x==0) ? da[j].index : da[j].index/w;
