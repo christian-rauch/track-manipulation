@@ -7,7 +7,7 @@
 
 #include <set>
 
-#define SDF_DA
+//#define SDF_DA
 #define CLASSIF_DA
 
 SegmentationPrior::SegmentationPrior(Tracker &tracker) : tracker(tracker), lcm() {
@@ -86,9 +86,9 @@ void SegmentationPrior::computeContribution(
 #endif
 #ifdef CLASSIF_DA
         // reset _lastElements counter on host and device
-//        cudaMemset(tracker.getOptimizer()->_lastElements->devicePtr(),0,sizeof(int));
-//        tracker.getOptimizer()->_lastElements->syncDeviceToHost();
-//        CheckCudaDieOnError();
+        cudaMemset(tracker.getOptimizer()->_lastElements->devicePtr(),0,sizeof(int));
+        tracker.getOptimizer()->_lastElements->syncDeviceToHost();
+        CheckCudaDieOnError();
 
         // host copy of observed points
         std::vector<float4> points(ndata);
@@ -108,13 +108,15 @@ void SegmentationPrior::computeContribution(
                 const uint index = iw + ih*w;
                 //if(points[index].w>0) { valid_index.insert(index); }
                 if(points[index].w>0) { valid_index.push_back(index); }
-                if(points[index].w>0) {
-                    DataAssociatedPoint da;
-                    // get predicted class
-                    da.index = index;
-                    da.dataAssociation = img_class(ih,iw);
-                    da.error = 0.05; // TODO: this is interpreted as the SDF
-                    dpoints.push_back(da);
+                if(points[index].w>0) { // valid observation
+                    if(img_class(ih,iw)>0) { // no background
+                        DataAssociatedPoint da;
+                        // get predicted class
+                        da.index = index;
+                        da.dataAssociation = img_class(ih,iw);
+                        da.error = 0.05; // TODO: this is interpreted as the SDF
+                        dpoints.push_back(da);
+                    }
                 }
             }
         }
@@ -136,10 +138,10 @@ void SegmentationPrior::computeContribution(
 //        }
 
         // set number of points, only used at host
-        //(*tracker.getOptimizer()->_lastElements)[i] = dpoints.size();
+        (*tracker.getOptimizer()->_lastElements)[i] = dpoints.size();
         //(*tracker.getOptimizer()->_lastElements)[i] = 10; // nElements > 10
 //        (*tracker.getOptimizer()->_lastElements)[i] = 44;
-        //tracker.getOptimizer()->_lastElements->syncHostToDevice();
+        tracker.getOptimizer()->_lastElements->syncHostToDevice();
 //        cudaMemcpy(tracker.getOptimizer()->_lastElements->devicePtr(),
 //                   tracker.getOptimizer()->_lastElements->hostPtr(),
 //                   sizeof(int), cudaMemcpyHostToDevice);
@@ -147,10 +149,10 @@ void SegmentationPrior::computeContribution(
 //                   tracker.getOptimizer()->_lastElements->devicePtr(),
 //                   sizeof(int), cudaMemcpyDeviceToHost);
         // sync data
-//        cudaMemcpy((*tracker.getOptimizer()->_dPts)[i],
-//                   dpoints.data(),
-//                   dpoints.size()*sizeof(DataAssociatedPoint),
-//                   cudaMemcpyHostToDevice);
+        cudaMemcpy((*tracker.getOptimizer()->_dPts)[i],
+                   dpoints.data(),
+                   dpoints.size()*sizeof(DataAssociatedPoint),
+                   cudaMemcpyHostToDevice);
         CheckCudaDieOnError();
 
 
@@ -191,23 +193,23 @@ void SegmentationPrior::computeContribution(
 //        tracker.getOptimizer()->_lastElements->syncHostToDevice();
 
         //for(uint ida(0); ida<ndata; ida++) {
-        for(uint ida(0); ida<valid_index.size(); ida++) {
-//            if(ida>=orgle) {
-//                //da[ida].index = 263886; // seems to work partially for fake data (if w>0)
-//                da[ida].index = 1000;
-//                //da[ida].index = valid_index[0];
-//            }
-            //da[ida].index = valid_index[ida];
+//        for(uint ida(0); ida<valid_index.size(); ida++) {
+////            if(ida>=orgle) {
+////                //da[ida].index = 263886; // seems to work partially for fake data (if w>0)
+////                da[ida].index = 1000;
+////                //da[ida].index = valid_index[0];
+////            }
+//            //da[ida].index = valid_index[ida];
 //            da[ida].index = valid_index.at(ida);
-            da[ida].dataAssociation = 5;
-            //da[ida].error = 0.0005;
-            //da[ida].error = 0.00475171;
-            da[ida].error = 0.05;
-        }
+//            da[ida].dataAssociation = 5;
+//            //da[ida].error = 0.0005;
+//            //da[ida].error = 0.00475171;
+//            da[ida].error = 0.05;
+//        }
 
         //tracker.getOptimizer()->_lastElements->hostPtr()[i] = valid_index.size()-1;
 //        tracker.getOptimizer()->_lastElements->hostPtr()[i] = 25000;
-        //tracker.getOptimizer()->_lastElements->hostPtr()[i] = 50000;
+//        tracker.getOptimizer()->_lastElements->hostPtr()[i] = 50000;
         //tracker.getOptimizer()->_lastElements->hostPtr()[i] = 100000;
 //        tracker.getOptimizer()->_lastElements->syncHostToDevice();
 
@@ -277,13 +279,13 @@ void SegmentationPrior::computeContribution(
         cudaMallocHost(&verts, ndata*sizeof(float4));
         cudaMemcpy(verts, observation.dVertMap, ndata*sizeof(float4), cudaMemcpyDeviceToHost);
         CheckCudaDieOnError();
-        for(uint ida(0); ida<tracker.getOptimizer()->_lastElements->hostPtr()[i]; ida++) {
-            std::cout << ida << " " << da2[ida].index << " " << da2[ida].dataAssociation << " " << da2[ida].error << std::endl;
-            //const float4 vert = observation.dVertMap[tracker.getOptimizer()->_dPts->hostPtr()[i][ida].index];
-            //const float4 vert = observation.dVertMap[da2[ida].index];
-            const float4 vert = verts[da2[ida].index];
-            std::cout << vert.x << " " << vert.y << " " << vert.z << " " << vert.w << std::endl;
-        }
+//        for(uint ida(0); ida<tracker.getOptimizer()->_lastElements->hostPtr()[i]; ida++) {
+//            std::cout << ida << " " << da2[ida].index << " " << da2[ida].dataAssociation << " " << da2[ida].error << std::endl;
+//            //const float4 vert = observation.dVertMap[tracker.getOptimizer()->_dPts->hostPtr()[i][ida].index];
+//            //const float4 vert = observation.dVertMap[da2[ida].index];
+//            const float4 vert = verts[da2[ida].index];
+//            std::cout << vert.x << " " << vert.y << " " << vert.z << " " << vert.w << std::endl;
+//        }
 
         uint nverts = 0;
         for(uint iv(0); iv<ndata; iv++) {
