@@ -667,7 +667,9 @@ int main(int argc, char *argv[]) {
     pangolin::Var<float> resetInfoThreshold("opt.resetInfoThreshold",1.0e-5,1e-5,2e-5);
     pangolin::Var<float> stabilityThreshold("opt.stabilityThreshold",7.5e-6,5e-6,1e-5);
     pangolin::Var<float> lambdaModToObs("opt.lambdaModToObs",0.5,0,1);
-    pangolin::Var<float> lambdaObsToMod("opt.lambdaObsToMod",1,0,1);
+    //pangolin::Var<float> lambdaModToObs("opt.lambdaModToObs",0,0,1);
+    //pangolin::Var<float> lambdaObsToMod("opt.lambdaObsToMod",1,0,1);
+    pangolin::Var<float> lambdaObsToMod("opt.lambdaObsToMod",0,0,1);
 #ifdef USE_CONTACT_PRIOR
     pangolin::Var<float> lambdaIntersection("opt.lambdaIntersection",1.f,0,40);
     //pangolin::Var<float> selfIntersectWeight("opt.selfIntersectWeight",atof(argv[2]),0,40);
