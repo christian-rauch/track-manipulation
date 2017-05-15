@@ -50,8 +50,8 @@
 #ifdef VALKYRIE
     // read depth images from LCM topic
     #define DEPTH_SOURCE_LCM
-    #define DEPTH_SOURCE_LCM_MULTISENSE
-    //#define DEPTH_SOURCE_LCM_XTION
+//    #define DEPTH_SOURCE_LCM_MULTISENSE
+    #define DEPTH_SOURCE_LCM_XTION
     // read depth (not disparity) images from MultiSense SL, use specific camera parameters
     //#define DEPTH_SOURCE_IMAGE_MULTISENSE
     #include <dart_lcm/lcm_state_publish.hpp>
@@ -86,8 +86,9 @@
     #define USE_CONTACT_PRIOR
 #endif
 
-#define LCM_CHANNEL_ROBOT_STATE "EST_ROBOT_STATE"
+//#define LCM_CHANNEL_ROBOT_STATE "EST_ROBOT_STATE"
 //#define LCM_CHANNEL_ROBOT_STATE "EST_ROBOT_STATE_ORG"
+#define LCM_CHANNEL_ROBOT_STATE "ROBOT_STATE_PREDICTED"
 #define LCM_CHANNEL_DART_PREFIX "DART_"
 //#define LCM_CHANNEL_DART_PREFIX "EST_ROBOT"
 
@@ -352,11 +353,14 @@ int main(int argc, char *argv[]) {
     // example of using log file
     // exit after failure, used to stop publishing when end of logfile is reached
 //    LCM_CommonBase::exitOnFailure(true);
-    //LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160623_cr_arm_moving_IR_pattern/bottle_move.lcmlog");
+//    LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/yy-grasp.lcmlog");
+//    LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160623_cr_arm_moving_IR_pattern/bottle_move.lcmlog");
 //    LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160623_cr_arm_moving_IR_pattern/bottle_move-filtered_b120.lcmlog");
     //LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160623_cr_arm_moving_IR_pattern/box_move.lcmlog");
 //    LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160727_cr-hand-movement-with-vicon-marker/vicon-arm_movement.lcmlog");
 //    LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20160727_cr-hand-movement-with-vicon-marker/vicon-finger_movement.lcmlog");
+//    LCM_CommonBase::setProvider("file:///home/christian/Downloads/logs/20170113_grasping_stereo+xtion/hand_wo_table/hand_finger_movement.lcmlog");
+//    LCM_CommonBase::setProvider("file:///media/christian/DATA/logs/20170504_cr-left_palm-poses/snippets/merged.lcmlog");
 #endif
 
 #ifdef DEPTH_SOURCE_LCM_MULTISENSE
@@ -372,6 +376,7 @@ int main(int argc, char *argv[]) {
     // initialise LCM depth source and listen on channel "CAMERA" in a separate thread
     dart::LCM_DepthSource<float,uchar3> *depthSource = new dart::LCM_DepthSource<float,uchar3>(val_multisense);
     depthSource->subscribe_images("CAMERA");
+    //depthSource->subscribe_images("MULTISENSE_CAMERA");
     //depthSource->subscribe_images("CAMERA_FILTERED");
     depthSource->setMaxDepthDistance(1.0); // meter
 
@@ -393,6 +398,7 @@ int main(int argc, char *argv[]) {
     depthSource->subscribe_images("OPENNI_FRAME");
 
     const std::string cam_frame_name = "head_xtion_joint";
+    //const std::string cam_frame_name = "left_valkyrie_hand_joint";
 #endif
 
     tracker.addDepthSource(depthSource);
@@ -455,6 +461,7 @@ int main(int argc, char *argv[]) {
     // Valkyrie with attached Asus Xtion PRO LIVE
     //const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_with_xtion.urdf";
     const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_sim.urdf";
+    //const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_sim_limits.urdf";
 
     // add Valkyrie
     dart::HostOnlyModel val = dart::readModelURDF(urdf_model_path, "pelvis");
@@ -518,9 +525,10 @@ int main(int argc, char *argv[]) {
     // track subparts of Valkyrie
     //const std::vector<uint8_t> colour_estimated_model = {255, 127, 0}; // orange
     const std::vector<uint8_t> colour_estimated_model = {255, 200, 0}; // yellow-orange
-    dart::HostOnlyModel val_torso = dart::readModelURDF(urdf_model_path, "torso", "obj", colour_estimated_model);
+    //dart::HostOnlyModel val_torso = dart::readModelURDF(urdf_model_path, "torso", "obj", colour_estimated_model);
+    dart::HostOnlyModel val_torso = dart::readModelURDF(urdf_model_path, "leftPalm", "obj", colour_estimated_model);
 
-    const int val_torso_cam_frame_id = val_torso.getJointFrame(val_torso.getJointIdByName(cam_frame_name));
+    //const int val_torso_cam_frame_id = val_torso.getJointFrame(val_torso.getJointIdByName(cam_frame_name));
 
     tracker.addModel(val_torso,
                      modelSdfResolution,    // modelSdfResolution, def = 0.002
@@ -581,8 +589,8 @@ int main(int argc, char *argv[]) {
 //    tracker.addPrior(&val_rep);
 
     // prevent movement of the camera frame by enforcing no transformation
-    dart::NoCameraMovementPrior val_cam(tracker.getModelIDbyName("valkyrie"));
-    tracker.addPrior(&val_cam);
+    //dart::NoCameraMovementPrior val_cam(tracker.getModelIDbyName("valkyrie"));
+    //tracker.addPrior(&val_cam);
 #endif
 
     std::cout<<"added models: "<<tracker.getNumModels()<<std::endl;
@@ -666,9 +674,9 @@ int main(int argc, char *argv[]) {
     pangolin::Var<float> objectRegularization("opt.objectRegularization",0.1,0,10); // 1.0
     pangolin::Var<float> resetInfoThreshold("opt.resetInfoThreshold",1.0e-5,1e-5,2e-5);
     pangolin::Var<float> stabilityThreshold("opt.stabilityThreshold",7.5e-6,5e-6,1e-5);
-    pangolin::Var<float> lambdaModToObs("opt.lambdaModToObs",0.5,0,1);
-    //pangolin::Var<float> lambdaModToObs("opt.lambdaModToObs",0,0,1);
-    //pangolin::Var<float> lambdaObsToMod("opt.lambdaObsToMod",1,0,1);
+//    pangolin::Var<float> lambdaModToObs("opt.lambdaModToObs",0.5,0,1);
+    pangolin::Var<float> lambdaModToObs("opt.lambdaModToObs",0,0,1);
+//    pangolin::Var<float> lambdaObsToMod("opt.lambdaObsToMod",1,0,1);
     pangolin::Var<float> lambdaObsToMod("opt.lambdaObsToMod",0,0,1);
 #ifdef USE_CONTACT_PRIOR
     pangolin::Var<float> lambdaIntersection("opt.lambdaIntersection",1.f,0,40);
@@ -861,7 +869,11 @@ int main(int argc, char *argv[]) {
     // set initial state of tracked model
     val_torso_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
     val_torso_mm.setPose(val_torso_pose);
-    dart::SE3 Tmc = val_torso_mm.getTransformModelToFrame(val_torso_cam_frame_id);
+//    dart::SE3 Tmc = val_torso_mm.getTransformModelToFrame(val_torso_cam_frame_id);
+    //dart::SE3 Tmc = val.getTransformModelToFrame(val_cam_frame_id);
+    // TODO: set transform to palm pose
+    //dart::SE3 Tmc = val.getTransformModelToFrame(val.getJointFrame(val.getJointIdByName("leftWristPitch")));
+    dart::SE3 Tmc = val.getTransformCameraToFrame(val.getJointFrame(val.getJointIdByName("leftWristPitch")));
     val_torso_pose.setTransformModelToCamera(Tmc);
 #ifdef WITH_BOTTLE
     bottle_pose.setTransformModelToCamera(T_cb);
@@ -918,7 +930,9 @@ int main(int argc, char *argv[]) {
             val_torso_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
 #endif
             val_torso_mm.setPose(val_torso_pose);
-            dart::SE3 Tmc = val_torso_mm.getTransformModelToFrame(val_torso_cam_frame_id);
+            //dart::SE3 Tmc = val_torso_mm.getTransformModelToFrame(val_torso_cam_frame_id);
+            //dart::SE3 Tmc = val.getTransformCameraToFrame(val.getJointFrame(val.getJointIdByName("leftWristPitch")));
+            dart::SE3 Tmc = val.getTransformFrameToCamera(val.getJointFrame(val.getJointIdByName("leftWristPitch")));
             val_torso_pose.setTransformModelToCamera(Tmc);
         }
 #endif
@@ -1063,7 +1077,7 @@ int main(int argc, char *argv[]) {
                 // publish optimized pose
                 lcm_robot_state.publish_estimate();
                 // publish frame poses of reported and estimated model
-                lcm_frame_pub.publish_frame_pose("leftWristPitch");
+                //lcm_frame_pub.publish_frame_pose("leftWristPitch");
 
                 //lcm_object_frame_pub.publish_frame_pose("joint1");
 #endif
@@ -1077,7 +1091,9 @@ int main(int argc, char *argv[]) {
         //                                                                                                      //
         //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        glClearColor (1.0, 1.0, 1.0, 1.0);
+//        glClearColor (1.0, 1.0, 1.0, 1.0);
+        const float bkg = 0.5f;
+        glClearColor(bkg, bkg, bkg, 1);
         glShadeModel (GL_SMOOTH);
         float4 lightPosition = make_float4(normalize(make_float3(-0.4405,-0.5357,-0.619)),0);
         glLightfv(GL_LIGHT0, GL_POSITION, (float*)&lightPosition);
