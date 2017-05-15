@@ -96,6 +96,7 @@ void SegmentationPrior::computeContribution(
         CheckCudaDieOnError();
 
         std::vector<DataAssociatedPoint> dpoints;
+        std::set<int> unique_da;
         for(uint iw(0); iw<w; iw++) {
             for(uint ih(0); ih<h; ih++) {
                 const uint index = iw + ih*w;
@@ -105,12 +106,20 @@ void SegmentationPrior::computeContribution(
                         // get predicted class
                         da.index = index;
                         da.dataAssociation = img_class(ih,iw);
-                        da.error = 0.0005; // TODO: this is interpreted as the SDF
+                        //da.error = 0.0005; // TODO: this is interpreted as the SDF
+                        da.error = 0.0; // we will compute error in other kernel
                         dpoints.push_back(da);
+                        unique_da.insert(da.dataAssociation);
                     }
                 }
             }
         }
+
+        std::cout << "unique DA classif:";
+        for(const int uda : unique_da) {
+            std::cout << " " << uda;
+        }
+        std::cout << std::endl;
 
         CheckCudaDieOnError();
 
@@ -162,6 +171,7 @@ void SegmentationPrior::computeContribution(
         CheckCudaDieOnError();
         Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> da_mat(h,w);
         da_mat.setConstant(-1);
+        std::set<int> unique_da;
         // index = x + y*width;
         for(uint j(0); j<le; j++) {
 //            std::cout << da[j].index << " " << da[j].dataAssociation << " " << da[j].error << std::endl;
@@ -171,6 +181,7 @@ void SegmentationPrior::computeContribution(
             const uint x = da[j].index%w;
             const uint y = (x==0) ? da[j].index : da[j].index/w;
             da_mat(y,x) = da[j].dataAssociation;
+            unique_da.insert(da[j].dataAssociation);
         }
         cudaFreeHost(da);
         const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, " ", "\n");
@@ -178,6 +189,12 @@ void SegmentationPrior::computeContribution(
         std::ofstream csvfile(fname.c_str());
         csvfile << da_mat.format(CSVFormat);
         csvfile.close();
+
+        std::cout << "unique DA:";
+        for(const int uda : unique_da) {
+            std::cout << " " << uda;
+        }
+        std::cout << std::endl;
     }
     CheckCudaDieOnError();
 #endif
