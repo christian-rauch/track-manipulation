@@ -3,12 +3,7 @@
 
 //#define DBG_DA
 #include <fstream>
-#define PRNT_DA
-
-#include <set>
-
-//#define SDF_DA
-#define CLASSIF_DA
+//#define PRNT_DA
 
 SegmentationPrior::SegmentationPrior(Tracker &tracker) : tracker(tracker), lcm() {
     if(lcm.good())
@@ -40,51 +35,7 @@ void SegmentationPrior::computeContribution(
     const uint w = tracker.getPointCloudSource().getDepthWidth();
     const uint ndata = w*h;
 
-    mutex.lock();
     for(uint i(0); i<models.size(); i++) {
-
-#ifdef SDF_DA
-        int * dbg_da=NULL;
-#ifdef DBG_DA // debug data association
-        cudaMalloc(&dbg_da,ndata*sizeof(int));
-        cudaMemset(dbg_da,0,ndata*sizeof(int));
-#endif
-        errorAndDataAssociation(
-                    tracker.getPointCloudSource().getDeviceVertMap(),
-                    tracker.getPointCloudSource().getDeviceNormMap(),
-                    int(tracker.getPointCloudSource().getDepthWidth()),
-                    int(tracker.getPointCloudSource().getDepthHeight()),
-                    *models[i],
-                    opts,
-                    tracker.getOptimizer()->_dPts->hostPtr()[i],
-                    tracker.getOptimizer()->_lastElements->devicePtr(),
-                    tracker.getOptimizer()->_lastElements->hostPtr(),
-                    dbg_da, NULL, NULL);
-
-#ifdef DBG_DA // debug data association
-        std::cout << ">>######## dbg DA " << i << std::endl;
-        int *dbg_da_host = new int[ndata]();
-        cudaMemcpy(dbg_da_host, dbg_da, ndata*sizeof(int),cudaMemcpyDeviceToHost);
-//        for(uint id(0); id<ndata; id++) {
-//            // index = x + y*width;
-//            if(dbg_da_host[id]!=-1) {
-//                std::cout << id << " d: " << dbg_da+id << std::endl;
-//                std::cout << id << " h: " << &dbg_da_host[id] << std::endl;
-//                std::cout << id << " " << dbg_da_host[id] << std::endl;
-//            }
-//        }
-        Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> da_mat(h,w);
-        std::memcpy(da_mat.data(), dbg_da_host, ndata*sizeof(int));
-        delete[] dbg_da_host;
-        std::cout << "<<########" << std::endl;
-        const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, " ", "\n");
-        const std::string fname = "dbg_da_host.csv";
-        std::ofstream csvfile(fname.c_str());
-        csvfile << da_mat.format(CSVFormat);
-        csvfile.close();
-#endif
-#endif
-#ifdef CLASSIF_DA
         // reset _lastElements counter on host and device
         cudaMemset(tracker.getOptimizer()->_lastElements->devicePtr(),0,sizeof(int));
         tracker.getOptimizer()->_lastElements->syncDeviceToHost();
@@ -96,32 +47,22 @@ void SegmentationPrior::computeContribution(
         CheckCudaDieOnError();
 
         std::vector<DataAssociatedPoint> dpoints;
-        std::set<int> unique_da;
+        mutex.lock();
         for(uint iw(0); iw<w; iw++) {
             for(uint ih(0); ih<h; ih++) {
                 const uint index = iw + ih*w;
                 if(points[index].w>0) { // valid observation
                     if(img_class(ih,iw)>0) { // no background
                         DataAssociatedPoint da;
-                        // get predicted class
                         da.index = index;
-                        da.dataAssociation = img_class(ih,iw);
-                        //da.error = 0.0005; // TODO: this is interpreted as the SDF
+                        da.dataAssociation = img_class(ih,iw); // get predicted class
                         da.error = 0.0; // we will compute error in other kernel
                         dpoints.push_back(da);
-                        unique_da.insert(da.dataAssociation);
                     }
                 }
             }
         }
-
-        std::cout << "unique DA classif:";
-        for(const int uda : unique_da) {
-            std::cout << " " << uda;
-        }
-        std::cout << std::endl;
-
-        CheckCudaDieOnError();
+        mutex.unlock();
 
         // set number of points, only used at host
         (*tracker.getOptimizer()->_lastElements)[i] = dpoints.size();
@@ -131,10 +72,6 @@ void SegmentationPrior::computeContribution(
                    dpoints.data(),
                    dpoints.size()*sizeof(DataAssociatedPoint),
                    cudaMemcpyHostToDevice);
-        CheckCudaDieOnError();
-        std::cout << ">> CLASSIF DA DONE" << std::endl;
-
-#endif
 
         // compute gradient / Hessian
         float obsToModError = 0;
@@ -153,9 +90,7 @@ void SegmentationPrior::computeContribution(
         JTJ = denseJTJ.sparseView();
         CheckCudaDieOnError();
     }
-    mutex.unlock();
 
-    CheckCudaDieOnError();
 
 #ifdef PRNT_DA
     // DBG
@@ -171,7 +106,6 @@ void SegmentationPrior::computeContribution(
         CheckCudaDieOnError();
         Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> da_mat(h,w);
         da_mat.setConstant(-1);
-        std::set<int> unique_da;
         // index = x + y*width;
         for(uint j(0); j<le; j++) {
 //            std::cout << da[j].index << " " << da[j].dataAssociation << " " << da[j].error << std::endl;
@@ -181,7 +115,6 @@ void SegmentationPrior::computeContribution(
             const uint x = da[j].index%w;
             const uint y = (x==0) ? da[j].index : da[j].index/w;
             da_mat(y,x) = da[j].dataAssociation;
-            unique_da.insert(da[j].dataAssociation);
         }
         cudaFreeHost(da);
         const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, " ", "\n");
@@ -189,12 +122,6 @@ void SegmentationPrior::computeContribution(
         std::ofstream csvfile(fname.c_str());
         csvfile << da_mat.format(CSVFormat);
         csvfile.close();
-
-        std::cout << "unique DA:";
-        for(const int uda : unique_da) {
-            std::cout << " " << uda;
-        }
-        std::cout << std::endl;
     }
     CheckCudaDieOnError();
 #endif
