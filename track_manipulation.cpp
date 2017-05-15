@@ -398,7 +398,6 @@ int main(int argc, char *argv[]) {
     depthSource->subscribe_images("OPENNI_FRAME");
 
     const std::string cam_frame_name = "head_xtion_joint";
-    //const std::string cam_frame_name = "left_valkyrie_hand_joint";
 #endif
 
     tracker.addDepthSource(depthSource);
@@ -542,6 +541,7 @@ int main(int argc, char *argv[]) {
                      );
 
 
+    // original SDF
 //    SDFPrior sdf_prior(tracker);
 //    tracker.addPrior(&sdf_prior);
 

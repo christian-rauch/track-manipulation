@@ -7,7 +7,6 @@ using namespace dart;
 
 class SDFPrior : public Prior {
 public:
-    //SegmentationPrior(const Optimizer *optim);
     SDFPrior(Tracker &tracker) : tracker(tracker) { }
 
 //    virtual int getNumPriorParams() const { return 0; }
@@ -24,7 +23,6 @@ public:
                                      const std::vector<Pose> & poses,
                                      const OptimizationOptions & opts);
 private:
-    //const Optimizer *optim;
     Tracker &tracker;
 };
 

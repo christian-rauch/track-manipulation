@@ -1,7 +1,9 @@
 #include "SegmentationPrior.hpp"
 #include <dart/optimization/kernels/obsToMod.h>
 
-//#define DBG_DA
+//#define SDF_DA
+#define CLASSIF_DA
+
 #include <fstream>
 //#define PRNT_DA
 
@@ -36,6 +38,20 @@ void SegmentationPrior::computeContribution(
     const uint ndata = w*h;
 
     for(uint i(0); i<models.size(); i++) {
+#ifdef SDF_DA
+        errorAndDataAssociation(
+                    tracker.getPointCloudSource().getDeviceVertMap(),
+                    tracker.getPointCloudSource().getDeviceNormMap(),
+                    int(tracker.getPointCloudSource().getDepthWidth()),
+                    int(tracker.getPointCloudSource().getDepthHeight()),
+                    *models[i],
+                    opts,
+                    tracker.getOptimizer()->_dPts->hostPtr()[i],
+                    tracker.getOptimizer()->_lastElements->devicePtr(),
+                    tracker.getOptimizer()->_lastElements->hostPtr(),
+                    NULL, NULL, NULL);
+#endif
+#ifdef CLASSIF_DA
         // reset _lastElements counter on host and device
         cudaMemset(tracker.getOptimizer()->_lastElements->devicePtr(),0,sizeof(int));
         tracker.getOptimizer()->_lastElements->syncDeviceToHost();
@@ -72,6 +88,7 @@ void SegmentationPrior::computeContribution(
                    dpoints.data(),
                    dpoints.size()*sizeof(DataAssociatedPoint),
                    cudaMemcpyHostToDevice);
+#endif
 
         // compute gradient / Hessian
         float obsToModError = 0;
@@ -84,6 +101,7 @@ void SegmentationPrior::computeContribution(
         // 'computeObsToModContribution' is private anyway
         OptimizationOptions fake_opts(opts);
         fake_opts.lambdaObsToMod = 1.0;
+        fake_opts.lambdaModToObs = 0.0;
 
         Eigen::MatrixXf denseJTJ(JTJ);
         tracker.getOptimizer()->computeObsToModContribution(JTe,denseJTJ,obsToModError,*models[i],poses[i],fake_opts,observation);

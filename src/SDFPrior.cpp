@@ -22,11 +22,8 @@ void SDFPrior::computeContribution(
                     int(tracker.getPointCloudSource().getDepthHeight()),
                     *models[i],
                     opts,
-                    //_dPts->hostPtr()[0],
                     tracker.getOptimizer()->_dPts->hostPtr()[i],
-                    //_lastElements->devicePtr(),
                     tracker.getOptimizer()->_lastElements->devicePtr(),
-                    //_lastElements->hostPtr(),
                     tracker.getOptimizer()->_lastElements->hostPtr(),
                     NULL, NULL, NULL);
 
@@ -42,6 +39,7 @@ void SDFPrior::computeContribution(
         // 'computeObsToModContribution' is private anyway
         OptimizationOptions fake_opts(opts);
         fake_opts.lambdaObsToMod = 1.0;
+        fake_opts.lambdaModToObs = 0.0;
 
         Eigen::MatrixXf denseJTJ(JTJ);
         tracker.getOptimizer()->computeObsToModContribution(JTe,denseJTJ,obsToModError,*models[i],poses[i],fake_opts,observation);
