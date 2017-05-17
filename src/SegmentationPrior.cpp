@@ -4,7 +4,7 @@
 //#define SDF_DA
 #define CLASSIF_DA
 
-#include <fstream>
+//#include <fstream>
 //#define PRNT_DA
 
 SegmentationPrior::SegmentationPrior(Tracker &tracker) : tracker(tracker), lcm() {
@@ -25,17 +25,19 @@ void SegmentationPrior::computeContribution(
 {
     CheckCudaDieOnError();
 
-    // check for new classified images, ignore prior otherwise
-    if(lcm.handleTimeout(10)<=0)
+    // check for new classified images, reuse previous result
+    if(lcm.handleTimeout(10)<=0 && img_class.size()==0)
         return;
 
     if(models.size()!=poses.size()) {
         throw std::runtime_error("models!=poses");
     }
 
+#if defined(PRNT_DA) || defined(CLASSIF_DA)
     const uint h = tracker.getPointCloudSource().getDepthHeight();
     const uint w = tracker.getPointCloudSource().getDepthWidth();
     const uint ndata = w*h;
+#endif
 
     for(uint i(0); i<models.size(); i++) {
 #ifdef SDF_DA

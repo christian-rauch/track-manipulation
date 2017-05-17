@@ -42,6 +42,9 @@
 //#define WITH_BOX
 //#define WITH_RECT
 
+//#define DA_SDF
+#define DA_EXTERN
+
 // switch depth sources
 #ifdef JUSTIN
     #define DEPTH_SOURCE_IMAGE // demo files
@@ -375,8 +378,8 @@ int main(int argc, char *argv[]) {
 
     // initialise LCM depth source and listen on channel "CAMERA" in a separate thread
     dart::LCM_DepthSource<float,uchar3> *depthSource = new dart::LCM_DepthSource<float,uchar3>(val_multisense);
-    depthSource->subscribe_images("CAMERA");
-    //depthSource->subscribe_images("MULTISENSE_CAMERA");
+    //depthSource->subscribe_images("CAMERA");
+    depthSource->subscribe_images("MULTISENSE_CAMERA");
     //depthSource->subscribe_images("CAMERA_FILTERED");
     depthSource->setMaxDepthDistance(1.0); // meter
 
@@ -396,6 +399,7 @@ int main(int argc, char *argv[]) {
     // initialise LCM depth source and listen on channel "CAMERA" in a separate thread
     dart::LCM_DepthSource<float,uchar3> *depthSource = new dart::LCM_DepthSource<float,uchar3>(val_xtion);
     depthSource->subscribe_images("OPENNI_FRAME");
+    depthSource->setMaxDepthDistance(1.0); // meter
 
     const std::string cam_frame_name = "head_xtion_joint";
 #endif
@@ -542,12 +546,16 @@ int main(int argc, char *argv[]) {
 
 
     // original SDF
-//    SDFPrior sdf_prior(tracker);
-//    tracker.addPrior(&sdf_prior);
+#ifdef DA_SDF
+    SDFPrior sdf_prior(tracker);
+    tracker.addPrior(&sdf_prior);
+#endif
 
+#ifdef DA_EXTERN
     // segmentation prior
     SegmentationPrior segm_prior(tracker);
     tracker.addPrior(&segm_prior);
+#endif
 
 
     // position priors
@@ -746,8 +754,11 @@ int main(int argc, char *argv[]) {
     dart::OptimizationOptions & opts = tracker.getOptions();
     //opts.lambdaObsToMod = 1;
     opts.lambdaObsToMod = 0;
+#if defined(DA_SDF) || defined(DA_EXTERN)
     opts.dataAssociation = None;
-//    opts.dataAssociation = MinSDF;
+#else
+    opts.dataAssociation = MinSDF;
+#endif
     memset(opts.lambdaIntersection.data(),0,tracker.getNumModels()*tracker.getNumModels()*sizeof(float));
 #ifdef USE_CONTACT_PRIOR
     opts.contactThreshold = 0.02;
