@@ -942,8 +942,15 @@ int main(int argc, char *argv[]) {
 #endif
             val_torso_mm.setPose(val_torso_pose);
             //dart::SE3 Tmc = val_torso_mm.getTransformModelToFrame(val_torso_cam_frame_id);
-            //dart::SE3 Tmc = val.getTransformCameraToFrame(val.getJointFrame(val.getJointIdByName("leftWristPitch")));
             dart::SE3 Tmc = val.getTransformFrameToCamera(val.getJointFrame(val.getJointIdByName("leftWristPitch")));
+            // TODO: additional perturbation
+            //dart::SE3 perturb = SE3FromRotationZ(M_PI/2.0);
+            //dart::SE3 perturb = SE3FromRotationX(M_PI*0.3); // OK
+            //dart::SE3 perturb = SE3FromRotationX(-M_PI*0.1); // OK
+            //dart::SE3 perturb = SE3FromRotationY(M_PI*0.5); // OK
+            //dart::SE3 perturb = SE3FromRotationY(M_PI);
+            //dart::SE3 perturb = SE3FromRotationZ(M_PI);
+//            Tmc = Tmc*perturb;
             val_torso_pose.setTransformModelToCamera(Tmc);
         }
 #endif
