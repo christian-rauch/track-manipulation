@@ -2,7 +2,11 @@
 #define SEGMENTATIONPRIOR_HPP
 
 #include <dart/tracker.h>
+#ifdef CATKIN_LCMTYPES
+#include <lcmtypes/img_classif_msgs/image_class_t.hpp>
+#else
 #include <img_classif_msgs/image_class_t.hpp>
+#endif
 #include <lcm/lcm-cpp.hpp>
 #include <mutex>
 

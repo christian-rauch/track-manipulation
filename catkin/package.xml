@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>track_manipulation</name>
+  <version>0.0.0</version>
+  <description>Example program for DART</description>
+  <maintainer email="Christian.Rauch@ed.ac.uk">Christian Rauch</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>cmake_modules</build_depend>
+  <depend>liblcm</depend>
+  <depend>lcm_catkin</depend>
+  <depend>bot_core_lcmtypes</depend>
+  <depend>dart</depend>
+  <depend>pangolin</depend>
+  <depend>dart_lcm</depend>
+  <depend>dart_urdf</depend>
+</package>
