@@ -2,8 +2,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <GL/glew.h>
-#include <GL/freeglut.h>
+//#include <GL/glew.h>
+//#include <GL/freeglut.h>
+// use system glew and glut
+#include "/usr/include/GL/glew.h"
+#include "/usr/include/GL/freeglut.h"
 
 #include <pangolin/pangolin.h>
 #include <pangolin/utils/timer.h>
