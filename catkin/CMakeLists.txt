@@ -16,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS dart lcm_catkin bot_core_lcmtypes img_cl
 find_package(CUDA REQUIRED)             # CUDA types used by DART
 find_package(Boost REQUIRED system filesystem thread) # traversing paths to find meshes
 find_package(GLUT REQUIRED)
-#find_package(Pangolin REQUIRED) # Pangolin does not install a pkg-config file
+find_package(Pangolin REQUIRED)
 find_package(Eigen REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
@@ -125,14 +125,13 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(${catkin_INCLUDE_DIRS})
+include_directories(${Pangolin_INCLUDE_DIRS})
 include_directories(${Eigen_INCLUDE_DIRS})
 include_directories(${dart_PREFIX}/include/dart/)
 include_directories(../include)
 include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${CUDA_TOOLKIT_ROOT_DIR}/samples/common/inc)
 include_directories(${Boost_INCLUDE_DIRS})
-
-link_directories(${dart_PREFIX}/lib)
 
 add_definitions(-DCUDA_BUILD)
 
