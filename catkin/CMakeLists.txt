@@ -125,6 +125,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(${catkin_INCLUDE_DIRS})
+include_directories(${CATKIN_DEVEL_PREFIX}/../../include)
 include_directories(${Pangolin_INCLUDE_DIRS})
 include_directories(${Eigen_INCLUDE_DIRS})
 include_directories(${dart_PREFIX}/include/dart/)
