@@ -142,8 +142,8 @@ add_definitions(-DCATKIN_LCMTYPES)
 #   src/${PROJECT_NAME}/lala.cpp
 # )
 
-add_library(sdf_prior ../src/SDFPrior.cpp ../include/SDFPrior.hpp)
-add_library(segm_prior ../src/SegmentationPrior.cpp ../include/SegmentationPrior.hpp)
+cuda_add_library(sdf_prior ../src/SDFPrior.cpp ../include/SDFPrior.hpp)
+cuda_add_library(segm_prior ../src/SegmentationPrior.cpp ../include/SegmentationPrior.hpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -154,7 +154,7 @@ add_library(segm_prior ../src/SegmentationPrior.cpp ../include/SegmentationPrior
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/lala_node.cpp)
-add_executable(track_manipulation ../track_manipulation.cpp ../src/priors.cpp)
+cuda_add_executable(track_manipulation ../track_manipulation.cpp ../src/priors.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
