@@ -9,7 +9,7 @@ add_definitions(-std=c++11)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS dart lcm_catkin bot_core_lcmtypes img_classif_msgs_lcmtypes dart_lcm dart_urdf cmake_modules)
+find_package(catkin REQUIRED COMPONENTS dart lcm_catkin bot_core_lcmtypes img_classif_msgs_lcmtypes dart_lcm dart_urdf dart_ros cmake_modules)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)

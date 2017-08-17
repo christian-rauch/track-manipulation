@@ -16,4 +16,5 @@
   <depend>pangolin</depend>
   <depend>dart_lcm</depend>
   <depend>dart_urdf</depend>
+  <depend>dart_ros</depend>
 </package>

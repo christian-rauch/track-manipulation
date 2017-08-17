@@ -36,7 +36,8 @@
 
 // select a robot
 //#define JUSTIN      // using XML model and data files
-#define VALKYRIE    // using URDF model and LCM subscriptions
+//#define VALKYRIE    // using URDF model and LCM subscriptions
+#define KUKA
 
 //#define WITH_BOTTLE
 //#define WITH_BOX
@@ -59,6 +60,22 @@
     //#define DEPTH_SOURCE_IMAGE_MULTISENSE
     #include <dart_lcm/lcm_state_publish.hpp>
     #include <dart_lcm/lcm_frame_pose_publish.hpp>
+#endif
+
+#ifdef KUKA
+    #define DEPTH_SOURCE_ROS
+    #define ENABLE_URDF
+    #define ENABLE_URDF_ROS
+#endif
+
+#ifdef DEPTH_SOURCE_ROS
+    #include <dart_ros/RosDepthSource.hpp>
+    #define ROS_NODE
+#endif
+
+#ifdef ENABLE_URDF_ROS
+    #include <dart_ros/GetRobotURDF.hpp>
+    #define ROS_NODE
 #endif
 
 #ifdef DEPTH_SOURCE_LCM
@@ -260,6 +277,10 @@ int main(int argc, char *argv[]) {
     const std::string videoLoc = "../video/";
 #endif
 
+#ifdef ROS_NODE
+    ros::init(argc, argv, "dart");
+#endif
+
     // -=-=-=- initializations -=-=-=-
     cudaSetDevice(0);
     cudaDeviceReset();
@@ -286,7 +307,7 @@ int main(int argc, char *argv[]) {
     pangolin::OpenGlMatrixSpec glK = pangolin::ProjectionMatrixRDF_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
     pangolin::OpenGlRenderState camState(glK);
 #endif
-#ifdef ENABLE_URDF
+#ifdef VALKYRIE
     pangolin::OpenGlMatrixSpec glK = pangolin::ProjectionMatrixRUB_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
     pangolin::OpenGlMatrix viewpoint = pangolin::ModelViewLookAt(0, 0, 0.05, 0, -0.1, 0.2, pangolin::AxisY);
     //pangolin::OpenGlMatrix viewpoint = pangolin::ModelViewLookAt(0, 0, 0.05, 0, 0, 0.2, pangolin::AxisY);
@@ -299,6 +320,10 @@ int main(int argc, char *argv[]) {
     // Z forward, Y down
     pangolin::OpenGlRenderState camState(pangolin::OpenGlMatrix::RotateZ(M_PI)*glK, viewpoint);
 #endif
+#endif
+#ifdef DEPTH_SOURCE_ROS
+    pangolin::OpenGlMatrixSpec glK = pangolin::ProjectionMatrixRDF_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
+    pangolin::OpenGlRenderState camState(glK);
 #endif
     pangolin::View & camDisp = pangolin::Display("cam").SetAspect(640.0f/480.0f).SetHandler(new pangolin::Handler3D(camState));
 
@@ -404,6 +429,10 @@ int main(int argc, char *argv[]) {
     const std::string cam_frame_name = "head_xtion_joint";
 #endif
 
+#ifdef DEPTH_SOURCE_ROS
+    dart::RosDepthSource<float,uchar3> *depthSource = new dart::RosDepthSource<float,uchar3>();
+#endif
+
     tracker.addDepthSource(depthSource);
     dart::Optimizer & optimizer = *tracker.getOptimizer();
 
@@ -458,12 +487,32 @@ int main(int argc, char *argv[]) {
                      handPoseReduction);
 #endif
 
-#ifdef ENABLE_URDF
+#ifdef ENABLE_URDF_ROS
+    const std::string urdf_xml = GetRobotURDF();
+    dart::HostOnlyModel robot = readModelURDFxml(urdf_xml);
+    std::cout<<"found robot: "<<robot.getName()<<std::endl;
+
+    const std::vector<uint8_t> colour_estimated_model = {255, 200, 0}; // yellow-orange
+    dart::HostOnlyModel robot_tracked = dart::readModelURDFxml(urdf_xml, "sdh_palm_link");
+    tracker.addModel(robot_tracked,
+                     modelSdfResolution,    // modelSdfResolution, def = 0.002
+                     modelSdfPadding,       // modelSdfPadding, def = 0.07
+                     obsSdfSize,
+                     obsSdfResolution,
+                     make_float3(-0.5*obsSdfSize*obsSdfResolution) + obsSdfOffset,
+                     0,         // poseReduction
+                     1e5,       // collisionCloudDensity (def = 1e5)
+                     true      // cacheSdfs
+                     );
+#endif
+
+#ifdef VALKYRIE
     // original Valkyrie model
     //const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_sim.urdf";
     // Valkyrie with attached Asus Xtion PRO LIVE
     //const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_with_xtion.urdf";
-    const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_sim.urdf";
+    //const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_sim.urdf";
+    const std::string urdf_model_path = "/home/christian/Development/oh-distro-private/software/models/val_description/urdf/valkyrie_sim.urdf";
     //const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_sim_limits.urdf";
 
     // add Valkyrie
@@ -874,7 +923,7 @@ int main(int argc, char *argv[]) {
     leftHand.setPose(leftHandPose);
 #endif
 
-#ifdef ENABLE_URDF
+#ifdef VALKYRIE
     // wait to get initial configuration of robot from LCM thread
     usleep(100000);
     // set initial state of tracked model
@@ -935,7 +984,7 @@ int main(int argc, char *argv[]) {
 #endif
 #endif
 
-#ifdef ENABLE_URDF
+#ifdef VALKYRIE
         if(pangolin::Pushed(resetRobotPose) || useReportedPose) {
 #ifdef ENABLE_LCM_JOINTS
             val_torso_pose.setReducedArticulation(lcm_joints.getJointsNameValue());
@@ -1190,7 +1239,7 @@ int main(int argc, char *argv[]) {
             spaceJustin.renderWireframe();
 #endif
 
-#ifdef ENABLE_URDF
+#ifdef VALKYRIE
             // render Valkyrie reported state as wireframe model, origin is the camera centre
             val.setPose(val_pose);
             val.renderWireframe();
