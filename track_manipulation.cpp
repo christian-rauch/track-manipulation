@@ -66,6 +66,7 @@
     #define DEPTH_SOURCE_ROS
     #define ENABLE_URDF
     #define ENABLE_URDF_ROS
+    #define JOINTS_ROS
 #endif
 
 #ifdef DEPTH_SOURCE_ROS
@@ -77,6 +78,10 @@
 #ifdef ENABLE_URDF_ROS
     #include <dart_ros/GetRobotURDF.hpp>
     #define ROS_NODE
+#endif
+
+#ifdef JOINTS_ROS
+    #include <dart_ros/JointProviderROS.hpp>
 #endif
 
 #ifdef DEPTH_SOURCE_LCM
@@ -280,11 +285,8 @@ int main(int argc, char *argv[]) {
 
 #ifdef ROS_NODE
     ros::init(argc, argv, "dart");
-    std::thread ros_spinner( [](){
-        ros::spin();
-        std::cout << "ROS end" << std::endl;
-    } );
-    ros_spinner.detach();
+    ros::AsyncSpinner spinner(4); // Use 4 threads
+    spinner.start();
 #endif
 
     // -=-=-=- initializations -=-=-=-
@@ -330,7 +332,7 @@ int main(int argc, char *argv[]) {
 #ifdef DEPTH_SOURCE_ROS
     pangolin::OpenGlMatrixSpec glK = pangolin::ProjectionMatrixRUB_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
     pangolin::OpenGlMatrix viewpoint = pangolin::ModelViewLookAt(0, 0, 0.05, 0, -0.1, 0.2, pangolin::AxisY);
-    pangolin::OpenGlRenderState camState(glK, viewpoint);
+    pangolin::OpenGlRenderState camState(pangolin::OpenGlMatrix::RotateZ(M_PI)*glK, viewpoint);
 #endif
     pangolin::View & camDisp = pangolin::Display("cam").SetAspect(640.0f/480.0f).SetHandler(new pangolin::Handler3D(camState));
 
@@ -885,6 +887,16 @@ int main(int argc, char *argv[]) {
 #endif
 #endif
 
+#ifdef KUKA
+    // tracked pose
+    dart::MirroredModel & robot_mm = tracker.getModel(tracker.getModelIDbyName(robot_tracked.getName()));
+    dart::Pose & robot_tracked_pose = tracker.getPose(robot_tracked.getName());
+
+    // reported pose
+    dart::Pose robot_pose = nullReductionPose(robot);
+    robot_pose.zero();
+#endif
+
 
 #ifdef ENABLE_JUSTIN
     // set up reported pose offsets
@@ -915,6 +927,22 @@ int main(int argc, char *argv[]) {
     dart::MirroredModel & bottle_mm = tracker.getModel(tracker.getModelIDbyName("bottle"));
     dart::LCM_FramePosePublish lcm_object_frame_pub("DART", bottle, bottle_mm);
 #endif
+#endif
+
+#ifdef JOINTS_ROS
+    JointProviderROS jprovider;
+    // initilise joint names from visualised model
+    jprovider.setJointNames(robot);
+    jprovider.subscribe_joints("/joint_states");
+#endif
+
+#ifdef JOINTS_ROS
+    // initialise tracked pose once
+    usleep(100000);
+    robot_tracked_pose.setReducedArticulation(jprovider.getJoints());
+    robot_mm.setPose(robot_tracked_pose);
+    const dart::SE3 Tmc = jprovider.getTransform("sdh_palm_link", "camera_rgb_optical_frame");
+    robot_tracked_pose.setTransformModelToCamera(Tmc);
 #endif
 
     // -=-=-=-=- set up initial poses -=-=-=-=-
@@ -993,6 +1021,22 @@ int main(int argc, char *argv[]) {
         val_pose.setTransformModelToCamera(Tmc);
 #endif
 #endif
+
+#ifdef JOINTS_ROS
+        // update reported pose
+        const std::map<std::string, float> joints = jprovider.getJoints();
+        robot_pose.setReducedArticulation(joints);
+        const dart::SE3 Tmc = jprovider.getTransform("world_frame", "camera_rgb_optical_frame");
+        robot_pose.setTransformModelToCamera(Tmc);
+#endif
+
+        if(pangolin::Pushed(resetRobotPose) || useReportedPose) {
+            // reset tracked pose
+            robot_tracked_pose.setReducedArticulation(joints);
+            const dart::SE3 Tmc = jprovider.getTransform("sdh_palm_link", "camera_rgb_optical_frame");
+            robot_tracked_pose.setTransformModelToCamera(Tmc);
+            robot_mm.setPose(robot_tracked_pose);
+        }
 
 #ifdef VALKYRIE
         if(pangolin::Pushed(resetRobotPose) || useReportedPose) {
@@ -1253,6 +1297,11 @@ int main(int argc, char *argv[]) {
             // render Valkyrie reported state as wireframe model, origin is the camera centre
             val.setPose(val_pose);
             val.renderWireframe();
+#endif
+
+#ifdef KUKA
+            robot.setPose(robot_pose);
+            robot.renderWireframe();
 #endif
 
             // glColor3ub(0,0,0);
