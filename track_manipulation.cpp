@@ -70,6 +70,7 @@
 
 #ifdef DEPTH_SOURCE_ROS
     #include <dart_ros/RosDepthSource.hpp>
+    #include <thread>
     #define ROS_NODE
 #endif
 
@@ -279,6 +280,11 @@ int main(int argc, char *argv[]) {
 
 #ifdef ROS_NODE
     ros::init(argc, argv, "dart");
+    std::thread ros_spinner( [](){
+        ros::spin();
+        std::cout << "ROS end" << std::endl;
+    } );
+    ros_spinner.detach();
 #endif
 
     // -=-=-=- initializations -=-=-=-
@@ -322,8 +328,9 @@ int main(int argc, char *argv[]) {
 #endif
 #endif
 #ifdef DEPTH_SOURCE_ROS
-    pangolin::OpenGlMatrixSpec glK = pangolin::ProjectionMatrixRDF_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
-    pangolin::OpenGlRenderState camState(glK);
+    pangolin::OpenGlMatrixSpec glK = pangolin::ProjectionMatrixRUB_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
+    pangolin::OpenGlMatrix viewpoint = pangolin::ModelViewLookAt(0, 0, 0.05, 0, -0.1, 0.2, pangolin::AxisY);
+    pangolin::OpenGlRenderState camState(glK, viewpoint);
 #endif
     pangolin::View & camDisp = pangolin::Display("cam").SetAspect(640.0f/480.0f).SetHandler(new pangolin::Handler3D(camState));
 
@@ -431,6 +438,8 @@ int main(int argc, char *argv[]) {
 
 #ifdef DEPTH_SOURCE_ROS
     dart::RosDepthSource<float,uchar3> *depthSource = new dart::RosDepthSource<float,uchar3>();
+    depthSource->setup("/camera/depth/camera_info");
+    depthSource->subscribe_images("/camera/depth/image_rect_raw", "/camera/rgb/image_rect_color");
 #endif
 
     tracker.addDepthSource(depthSource);
@@ -493,7 +502,7 @@ int main(int argc, char *argv[]) {
     std::cout<<"found robot: "<<robot.getName()<<std::endl;
 
     const std::vector<uint8_t> colour_estimated_model = {255, 200, 0}; // yellow-orange
-    dart::HostOnlyModel robot_tracked = dart::readModelURDFxml(urdf_xml, "sdh_palm_link");
+    dart::HostOnlyModel robot_tracked = dart::readModelURDFxml(urdf_xml, "sdh_palm_link", "", colour_estimated_model);
     tracker.addModel(robot_tracked,
                      modelSdfResolution,    // modelSdfResolution, def = 0.002
                      modelSdfPadding,       // modelSdfPadding, def = 0.07
@@ -512,7 +521,8 @@ int main(int argc, char *argv[]) {
     // Valkyrie with attached Asus Xtion PRO LIVE
     //const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_with_xtion.urdf";
     //const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_sim.urdf";
-    const std::string urdf_model_path = "/home/christian/Development/oh-distro-private/software/models/val_description/urdf/valkyrie_sim.urdf";
+    //const std::string urdf_model_path = "/home/christian/Development/oh-distro-private/software/models/val_description/urdf/valkyrie_sim.urdf";
+    const std::string urdf_model_path = "/home/christian/Development/dart_ws/src/val_description/urdf/valkyrie_sim.urdf";
     //const std::string urdf_model_path = "../models/val_description/urdf/valkyrie_sim_limits.urdf";
 
     // add Valkyrie
@@ -676,8 +686,8 @@ int main(int argc, char *argv[]) {
     }
 
     // pangolin variables
-//    static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
-    static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
+    static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
+//    static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
     static pangolin::Var<bool> stepVideo("ui.stepVideo",false,false);
     static pangolin::Var<bool> stepVideoBack("ui.stepVideoBack",false,false);
 #ifdef ENABLE_URDF
@@ -702,7 +712,7 @@ int main(int argc, char *argv[]) {
     static pangolin::Var<bool> showVoxelized("ui.showVoxelized",false,true);
     static pangolin::Var<float> levelSet("ui.levelSet",0.0,-10.0,10.0);
     static pangolin::Var<bool> showTrackedPoints("ui.showPoints",true,true);
-#ifdef DEPTH_SOURCE_LCM
+#if defined(DEPTH_SOURCE_LCM) || defined(DEPTH_SOURCE_ROS)
     static pangolin::Var<bool> showPointColour("ui.showColour",true,true);
 #else
     static pangolin::Var<bool> showPointColour("ui.showColour",false,true);
@@ -860,7 +870,7 @@ int main(int argc, char *argv[]) {
     dart::Pose & objectPose = tracker.getPose(1);
 #endif
 
-#ifdef ENABLE_URDF
+#ifdef VALKYRIE
     // get references to model and its pose for tracking
     dart::MirroredModel & val_torso_mm = tracker.getModel(tracker.getModelIDbyName("valkyrie"));
     dart::Pose & val_torso_pose = tracker.getPose("valkyrie");
