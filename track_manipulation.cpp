@@ -935,15 +935,7 @@ int main(int argc, char *argv[]) {
     jprovider.setJointNames(robot);
     jprovider.subscribe_joints("/joint_states");
 #endif
-
-#ifdef JOINTS_ROS
-    // initialise tracked pose once
-    usleep(100000);
-    robot_tracked_pose.setReducedArticulation(jprovider.getJoints());
-    robot_mm.setPose(robot_tracked_pose);
-    const dart::SE3 Tmc = jprovider.getTransform("sdh_palm_link", "camera_rgb_optical_frame");
-    robot_tracked_pose.setTransformModelToCamera(Tmc);
-#endif
+    resetRobotPose = true;
 
     // -=-=-=-=- set up initial poses -=-=-=-=-
 #ifdef ENABLE_JUSTIN
@@ -1031,11 +1023,11 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef KUKA
-        if(pangolin::Pushed(resetRobotPose) || useReportedPose) {
+        if(pangolinFrame>1 && (pangolin::Pushed(resetRobotPose) || useReportedPose)) {
             // reset tracked pose
             robot_tracked_pose.setReducedArticulation(joints);
-            const dart::SE3 Tmc = jprovider.getTransform("sdh_palm_link", "camera_rgb_optical_frame");
-            robot_tracked_pose.setTransformModelToCamera(Tmc);
+            const dart::SE3 Tpc = robot.getTransformFrameToCamera(robot.getJointFrame(robot.getJointIdByName("sdh_palm_joint")));
+            robot_tracked_pose.setTransformModelToCamera(Tpc);
             robot_mm.setPose(robot_tracked_pose);
         }
 #endif
@@ -1155,6 +1147,9 @@ int main(int argc, char *argv[]) {
 
             // run optimization method
             if (trackFromVideo || iteratePushed ) {
+
+                // only use reported pose initially
+                useReportedPose = false;
 
                 // workaround: we need to wait 1 frame before starting optimization
                 // otherwise, the no movement prior produces a wrong update
