@@ -44,7 +44,7 @@
 //#define WITH_RECT
 
 //#define DA_SDF
-#define DA_EXTERN
+//#define DA_EXTERN
 
 // switch depth sources
 #ifdef JUSTIN
@@ -112,9 +112,9 @@
     #define USE_CONTACT_PRIOR
 #endif
 
-//#define LCM_CHANNEL_ROBOT_STATE "EST_ROBOT_STATE"
+#define LCM_CHANNEL_ROBOT_STATE "EST_ROBOT_STATE"
 //#define LCM_CHANNEL_ROBOT_STATE "EST_ROBOT_STATE_ORG"
-#define LCM_CHANNEL_ROBOT_STATE "ROBOT_STATE_PREDICTED"
+//#define LCM_CHANNEL_ROBOT_STATE "ROBOT_STATE_PREDICTED"
 #define LCM_CHANNEL_DART_PREFIX "DART_"
 //#define LCM_CHANNEL_DART_PREFIX "EST_ROBOT"
 
@@ -743,10 +743,15 @@ int main(int argc, char *argv[]) {
     pangolin::Var<float> objectRegularization("opt.objectRegularization",0.1,0,10); // 1.0
     pangolin::Var<float> resetInfoThreshold("opt.resetInfoThreshold",1.0e-5,1e-5,2e-5);
     pangolin::Var<float> stabilityThreshold("opt.stabilityThreshold",7.5e-6,5e-6,1e-5);
-//    pangolin::Var<float> lambdaModToObs("opt.lambdaModToObs",0.5,0,1);
+#if defined(DA_SDF) || defined(DA_EXTERN)
+    // no contribution
     pangolin::Var<float> lambdaModToObs("opt.lambdaModToObs",0,0,1);
-//    pangolin::Var<float> lambdaObsToMod("opt.lambdaObsToMod",1,0,1);
     pangolin::Var<float> lambdaObsToMod("opt.lambdaObsToMod",0,0,1);
+#else
+    // default values
+    pangolin::Var<float> lambdaModToObs("opt.lambdaModToObs",0.5,0,1);
+    pangolin::Var<float> lambdaObsToMod("opt.lambdaObsToMod",1,0,1);
+#endif
 #ifdef USE_CONTACT_PRIOR
     pangolin::Var<float> lambdaIntersection("opt.lambdaIntersection",1.f,0,40);
     //pangolin::Var<float> selfIntersectWeight("opt.selfIntersectWeight",atof(argv[2]),0,40);
@@ -813,8 +818,6 @@ int main(int argc, char *argv[]) {
 
 
     dart::OptimizationOptions & opts = tracker.getOptions();
-    //opts.lambdaObsToMod = 1;
-    opts.lambdaObsToMod = 0;
 #if defined(DA_SDF) || defined(DA_EXTERN)
     opts.dataAssociation = None;
 #else
