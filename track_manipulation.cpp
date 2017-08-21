@@ -1020,10 +1020,11 @@ int main(int argc, char *argv[]) {
         robot_pose.setReducedArticulation(joints);
         const dart::SE3 Tmc = jprovider.getTransform("world_frame", "camera_rgb_optical_frame");
         robot_pose.setTransformModelToCamera(Tmc);
+        robot.setPose(robot_pose);
 #endif
 
 #ifdef KUKA
-        if(pangolinFrame>1 && (pangolin::Pushed(resetRobotPose) || useReportedPose)) {
+        if(pangolin::Pushed(resetRobotPose) || useReportedPose) {
             // reset tracked pose
             robot_tracked_pose.setReducedArticulation(joints);
             const dart::SE3 Tpc = robot.getTransformFrameToCamera(robot.getJointFrame(robot.getJointIdByName("sdh_palm_joint")));
@@ -1297,7 +1298,6 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef KUKA
-            robot.setPose(robot_pose);
             robot.renderWireframe();
 #endif
 
