@@ -71,7 +71,6 @@
 
 #ifdef DEPTH_SOURCE_ROS
     #include <dart_ros/RosDepthSource.hpp>
-    #include <thread>
     #define ROS_NODE
 #endif
 
@@ -82,6 +81,7 @@
 
 #ifdef JOINTS_ROS
     #include <dart_ros/JointProviderROS.hpp>
+    #include <dart_ros/JointPublisherROS.hpp>
 #endif
 
 #ifdef DEPTH_SOURCE_LCM
@@ -934,6 +934,8 @@ int main(int argc, char *argv[]) {
     // initilise joint names from visualised model
     jprovider.setJointNames(robot);
     jprovider.subscribe_joints("/joint_states");
+
+    JointPublisherROS jpublisher("/tracked_state");
 #endif
     resetRobotPose = true;
 
@@ -1152,10 +1154,7 @@ int main(int argc, char *argv[]) {
                 // only use reported pose initially
                 useReportedPose = false;
 
-                // workaround: we need to wait 1 frame before starting optimization
-                // otherwise, the no movement prior produces a wrong update
-                if(pangolinFrame>1)
-                    tracker.optimizePoses();
+                tracker.optimizePoses();
 
                 // update accumulated info
                 for (int m=0; m<tracker.getNumModels(); ++m) {
@@ -1199,6 +1198,9 @@ int main(int argc, char *argv[]) {
                 //lcm_frame_pub.publish_frame_pose("leftWristPitch");
 
                 //lcm_object_frame_pub.publish_frame_pose("joint1");
+#endif
+#ifdef JOINTS_ROS
+                jpublisher.publish(robot_tracked_pose);
 #endif
             }
 
