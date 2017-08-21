@@ -43,7 +43,7 @@
 //#define WITH_BOX
 //#define WITH_RECT
 
-//#define DA_SDF
+#define DA_SDF
 //#define DA_EXTERN
 
 // switch depth sources
@@ -605,20 +605,6 @@ int main(int argc, char *argv[]) {
                      true      // cacheSdfs
                      );
 
-
-    // original SDF
-#ifdef DA_SDF
-    SDFPrior sdf_prior(tracker);
-    tracker.addPrior(&sdf_prior);
-#endif
-
-#ifdef DA_EXTERN
-    // segmentation prior
-    SegmentationPrior segm_prior(tracker);
-    tracker.addPrior(&segm_prior);
-#endif
-
-
     // position priors
     // define 4 corresponding points in world camera and valkyrie camera frame
     // to fix head to reported head pose
@@ -660,6 +646,18 @@ int main(int argc, char *argv[]) {
     // prevent movement of the camera frame by enforcing no transformation
     //dart::NoCameraMovementPrior val_cam(tracker.getModelIDbyName("valkyrie"));
     //tracker.addPrior(&val_cam);
+#endif
+
+    // original SDF
+#ifdef DA_SDF
+    SDFPrior sdf_prior(tracker);
+    tracker.addPrior(&sdf_prior);
+#endif
+
+#ifdef DA_EXTERN
+    // segmentation prior
+    SegmentationPrior segm_prior(tracker);
+    tracker.addPrior(&segm_prior);
 #endif
 
     std::cout<<"added models: "<<tracker.getNumModels()<<std::endl;
