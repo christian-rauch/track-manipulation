@@ -504,7 +504,7 @@ int main(int argc, char *argv[]) {
     std::cout<<"found robot: "<<robot.getName()<<std::endl;
 
     const std::vector<uint8_t> colour_estimated_model = {255, 200, 0}; // yellow-orange
-    dart::HostOnlyModel robot_tracked = dart::readModelURDFxml(urdf_xml, "sdh_palm_link", "", colour_estimated_model);
+    dart::HostOnlyModel robot_tracked = dart::readModelURDFxml(urdf_xml, "sdh_palm_link", colour_estimated_model);
     tracker.addModel(robot_tracked,
                      modelSdfResolution,    // modelSdfResolution, def = 0.002
                      modelSdfPadding,       // modelSdfPadding, def = 0.07
@@ -589,8 +589,8 @@ int main(int argc, char *argv[]) {
     // track subparts of Valkyrie
     //const std::vector<uint8_t> colour_estimated_model = {255, 127, 0}; // orange
     const std::vector<uint8_t> colour_estimated_model = {255, 200, 0}; // yellow-orange
-    //dart::HostOnlyModel val_torso = dart::readModelURDF(urdf_model_path, "torso", "obj", colour_estimated_model);
-    dart::HostOnlyModel val_torso = dart::readModelURDF(urdf_model_path, "leftPalm", "obj", colour_estimated_model);
+    //dart::HostOnlyModel val_torso = dart::readModelURDF(urdf_model_path, "torso", colour_estimated_model);
+    dart::HostOnlyModel val_torso = dart::readModelURDF(urdf_model_path, "leftPalm", colour_estimated_model);
 
     //const int val_torso_cam_frame_id = val_torso.getJointFrame(val_torso.getJointIdByName(cam_frame_name));
 
@@ -1030,6 +1030,7 @@ int main(int argc, char *argv[]) {
         robot_pose.setTransformModelToCamera(Tmc);
 #endif
 
+#ifdef KUKA
         if(pangolin::Pushed(resetRobotPose) || useReportedPose) {
             // reset tracked pose
             robot_tracked_pose.setReducedArticulation(joints);
@@ -1037,6 +1038,7 @@ int main(int argc, char *argv[]) {
             robot_tracked_pose.setTransformModelToCamera(Tmc);
             robot_mm.setPose(robot_tracked_pose);
         }
+#endif
 
 #ifdef VALKYRIE
         if(pangolin::Pushed(resetRobotPose) || useReportedPose) {
