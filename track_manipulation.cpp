@@ -337,8 +337,8 @@ int main(int argc, char *argv[]) {
     pangolin::View & camDisp = pangolin::Display("cam").SetAspect(640.0f/480.0f).SetHandler(new pangolin::Handler3D(camState));
 
     pangolin::View & imgDisp = pangolin::Display("img").SetAspect(640.0f/480.0f);
-    pangolin::GlTexture imgTexDepthSize(320,240);
-    pangolin::GlTexture imgTexPredictionSize(160,120);
+    pangolin::GlTexture imgTexDepthSize;
+    pangolin::GlTexture imgTexPredictionSize;
 
     pangolin::DataLog infoLog;
     {
@@ -451,6 +451,9 @@ int main(int argc, char *argv[]) {
     const static float obsSdfResolution = 0.01*32/obsSdfSize;
     const static float defaultModelSdfResolution = 2e-3; //1.5e-3;
     const static float3 obsSdfOffset = make_float3(0,0,0.1);
+
+    imgTexDepthSize.Reinitialise(depthSource->getDepthWidth(), depthSource->getDepthHeight());
+    imgTexPredictionSize.Reinitialise(depthSource->getDepthWidth()/2, depthSource->getDepthHeight()/2);
 
     pangolin::Var<float> modelSdfResolution("lim.modelSdfResolution",defaultModelSdfResolution,defaultModelSdfResolution/2,defaultModelSdfResolution*2);
     pangolin::Var<float> modelSdfPadding("lim.modelSdfPadding",defaultModelSdfPadding,defaultModelSdfPadding/2,defaultModelSdfPadding*2);
@@ -1538,7 +1541,7 @@ int main(int argc, char *argv[]) {
             {
                 if (depthSource->hasColor()) {
                     imgTexDepthSize.Upload(depthSource->getColor(),GL_RGB,GL_UNSIGNED_BYTE);
-                    imgTexDepthSize.RenderToViewport();
+                    imgTexDepthSize.RenderToViewportFlipY();
                 }
             }
             break;
@@ -1562,7 +1565,7 @@ int main(int argc, char *argv[]) {
                 }
 
                 imgTexDepthSize.Upload(imgDepthSize.hostPtr(),GL_RGB,GL_UNSIGNED_BYTE);
-                imgTexDepthSize.RenderToViewport();
+                imgTexDepthSize.RenderToViewportFlipY();
             }
         case DebugPredictedDepth:
             {
