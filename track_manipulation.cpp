@@ -444,7 +444,7 @@ int main(int argc, char *argv[]) {
 #ifdef DEPTH_SOURCE_ROS
     dart::RosDepthSource<float,uchar3> *depthSource = new dart::RosDepthSource<float,uchar3>();
     depthSource->setup("/camera/depth/camera_info");
-    depthSource->subscribe_images("/camera/depth/image_rect_raw", "/camera/rgb/image_rect_color");
+    depthSource->subscribe_images("/camera/depth/image_rect_raw/compressedDepth", "/camera/rgb/image_rect_color/compressed");
 //    depthSource->setup("/kinect2/sd/camera_info");
 //    depthSource->subscribe_images("/kinect2/sd/image_depth_rect", "/kinect2/sd/image_color_rect");
 #endif
