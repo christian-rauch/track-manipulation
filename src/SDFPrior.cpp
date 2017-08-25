@@ -25,7 +25,9 @@ void SDFPrior::computeContribution(
                     tracker.getOptimizer()->_dPts->hostPtr()[i],
                     tracker.getOptimizer()->_lastElements->devicePtr(),
                     tracker.getOptimizer()->_lastElements->hostPtr(),
-                    NULL, NULL, NULL);
+                    opts.debugObsToModDA ? tracker.getOptimizer()->_dDebugDataAssocObsToMod : NULL,
+                    opts.debugObsToModErr ? tracker.getOptimizer()->_dDebugObsToModError : NULL,
+                    opts.debugObsToModNorm ? tracker.getOptimizer()->_dDebugObsToModNorm : NULL);
 
         // compute gradient / Hessian
 

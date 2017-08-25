@@ -1595,7 +1595,7 @@ int main(int argc, char *argv[]) {
                 }
 
                 imgTexPredictionSize.Upload(imgPredSize.hostPtr(),GL_RGB,GL_UNSIGNED_BYTE);
-                imgTexPredictionSize.RenderToViewport();
+                imgTexPredictionSize.RenderToViewportFlipY();
             }
             break;
         case DebugObsToModDA:
@@ -1605,7 +1605,7 @@ int main(int argc, char *argv[]) {
                                                  allSdfColors.devicePtr(),depthWidth,depthHeight);\
             imgDepthSize.syncDeviceToHost();
             imgTexDepthSize.Upload(imgDepthSize.hostPtr(),GL_RGB,GL_UNSIGNED_BYTE);
-            imgTexDepthSize.RenderToViewport();
+            imgTexDepthSize.RenderToViewportFlipY();
             break;
         }
         case DebugModToObsDA:
@@ -1615,7 +1615,7 @@ int main(int argc, char *argv[]) {
                                                  allSdfColors.devicePtr(),predWidth,predHeight);\
             imgPredSize.syncDeviceToHost();
             imgTexPredictionSize.Upload(imgPredSize.hostPtr(),GL_RGB,GL_UNSIGNED_BYTE);
-            imgTexPredictionSize.RenderToViewport();
+            imgTexPredictionSize.RenderToViewportFlipY();
             break;
         }
         case DebugObsToModErr:
@@ -1627,7 +1627,7 @@ int main(int argc, char *argv[]) {
                                             0.f,errMax);
                 imgDepthSize.syncDeviceToHost();
                 imgTexDepthSize.Upload(imgDepthSize.hostPtr(),GL_RGB,GL_UNSIGNED_BYTE);
-                imgTexDepthSize.RenderToViewport();
+                imgTexDepthSize.RenderToViewportFlipY();
             }
             break;
         case DebugModToObsErr:
@@ -1639,7 +1639,7 @@ int main(int argc, char *argv[]) {
                                             0.f,errMax);
                 imgPredSize.syncDeviceToHost();
                 imgTexPredictionSize.Upload(imgPredSize.hostPtr(),GL_RGB,GL_UNSIGNED_BYTE);
-                imgTexPredictionSize.RenderToViewport();
+                imgTexPredictionSize.RenderToViewportFlipY();
             }
             break;
         case DebugJTJ:
