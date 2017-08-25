@@ -30,7 +30,7 @@
 
 #include <priors.hpp>
 #include <SDFPrior.hpp>
-#include <SegmentationPrior.hpp>
+//#include <SegmentationPrior.hpp>
 
 #define EIGEN_DONT_ALIGN
 
@@ -43,8 +43,8 @@
 //#define WITH_BOX
 //#define WITH_RECT
 
-#define DA_SDF
-//#define DA_EXTERN
+//#define DA_SDF
+#define DA_EXTERN
 
 // switch depth sources
 #ifdef JUSTIN
@@ -67,6 +67,9 @@
     #define ENABLE_URDF
     #define ENABLE_URDF_ROS
     #define JOINTS_ROS
+    #ifdef DA_EXTERN
+        #include <dart_segm_prior/SegmentationPrior.hpp>
+    #endif
 #endif
 
 #ifdef DEPTH_SOURCE_ROS
@@ -442,6 +445,8 @@ int main(int argc, char *argv[]) {
     dart::RosDepthSource<float,uchar3> *depthSource = new dart::RosDepthSource<float,uchar3>();
     depthSource->setup("/camera/depth/camera_info");
     depthSource->subscribe_images("/camera/depth/image_rect_raw", "/camera/rgb/image_rect_color");
+//    depthSource->setup("/kinect2/sd/camera_info");
+//    depthSource->subscribe_images("/kinect2/sd/image_depth_rect", "/kinect2/sd/image_color_rect");
 #endif
 
     tracker.addDepthSource(depthSource);
@@ -1025,6 +1030,7 @@ int main(int argc, char *argv[]) {
         const std::map<std::string, float> joints = jprovider.getJoints();
         robot_pose.setReducedArticulation(joints);
         const dart::SE3 Tmc = jprovider.getTransform("world_frame", "camera_rgb_optical_frame");
+//        const dart::SE3 Tmc = jprovider.getTransform("world_frame", "kinect2_ir_optical_frame");
         robot_pose.setTransformModelToCamera(Tmc);
         robot.setPose(robot_pose);
 #endif
@@ -1033,7 +1039,8 @@ int main(int argc, char *argv[]) {
         if(pangolin::Pushed(resetRobotPose) || useReportedPose) {
             // reset tracked pose
             robot_tracked_pose.setReducedArticulation(joints);
-            const dart::SE3 Tpc = robot.getTransformFrameToCamera(robot.getJointFrame(robot.getJointIdByName("sdh_palm_joint")));
+            //const dart::SE3 Tpc = robot.getTransformFrameToCamera(robot.getJointFrame(robot.getJointIdByName("sdh_palm_joint")));
+            const dart::SE3 Tpc = robot.getTransformFrameToCamera(robot.getFrameIdByName("sdh_palm_link"));
             robot_tracked_pose.setTransformModelToCamera(Tpc);
             robot_mm.setPose(robot_tracked_pose);
         }
