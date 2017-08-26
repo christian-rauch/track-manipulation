@@ -70,6 +70,7 @@
     #ifdef DA_EXTERN
         #include <dart_segm_prior/SegmentationPrior.hpp>
     #endif
+    #include <dart_segm_prior/DebugDAPrior.hpp>
 #endif
 
 #ifdef DEPTH_SOURCE_ROS
@@ -667,6 +668,9 @@ int main(int argc, char *argv[]) {
     SegmentationPrior segm_prior(tracker);
     tracker.addPrior(&segm_prior);
 #endif
+
+    DebugDAPrior dbg_da_prior(tracker);
+    tracker.addPrior(&dbg_da_prior);
 
     std::cout<<"added models: "<<tracker.getNumModels()<<std::endl;
 
