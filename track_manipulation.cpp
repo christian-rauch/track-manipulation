@@ -86,6 +86,7 @@
 #ifdef JOINTS_ROS
     #include <dart_ros/JointProviderROS.hpp>
     #include <dart_ros/JointPublisherROS.hpp>
+    #include <dart_ros/FramePosePublisher.hpp>
 #endif
 
 #ifdef DEPTH_SOURCE_LCM
@@ -948,7 +949,9 @@ int main(int argc, char *argv[]) {
     jprovider.setJointNames(robot);
     jprovider.subscribe_joints("/joint_states");
 
-    JointPublisherROS jpublisher("/tracked_state");
+    JointPublisherROS jpublisher("state_estimated");
+
+    FramePosePublisher frame_estimated(robot, robot_mm, "tracking");
 #endif
     resetRobotPose = true;
 
@@ -1215,7 +1218,10 @@ int main(int argc, char *argv[]) {
                 //lcm_object_frame_pub.publish_frame_pose("joint1");
 #endif
 #ifdef JOINTS_ROS
+                // publish estimated joint configuration
                 jpublisher.publish(robot_tracked_pose);
+                // publish link reported and estimated pose in camera frame
+                frame_estimated.publishFrame("sdh_palm_link", depthSource->getDepthOpticalFrame(), depthSource->getDepthTime());
 #endif
             }
 
