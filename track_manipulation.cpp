@@ -699,8 +699,8 @@ int main(int argc, char *argv[]) {
     }
 
     // pangolin variables
-    static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
-//    static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
+//    static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
+    static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
     static pangolin::Var<bool> stepVideo("ui.stepVideo",false,false);
     static pangolin::Var<bool> stepVideoBack("ui.stepVideoBack",false,false);
 #ifdef ENABLE_URDF
@@ -736,7 +736,7 @@ int main(int argc, char *argv[]) {
     static pangolin::Var<float> planeOffset("ui.planeOffset",-0.03,-0.05,0);
 #endif
 
-    static pangolin::Var<int> debugImg("ui.debugImg",DebugN,0,DebugN);
+    static pangolin::Var<int> debugImg("ui.debugImg",DebugObsToModErr,0,DebugN);
 
     static pangolin::Var<bool> showObsSdf("ui.showObsSdf",false,true);
     static pangolin::Var<bool> showPredictedPoints("ui.showPredictedPoints",false,true);
@@ -1222,6 +1222,13 @@ int main(int argc, char *argv[]) {
                 jpublisher.publish(robot_tracked_pose);
                 // publish link reported and estimated pose in camera frame
                 frame_estimated.publishFrame("sdh_palm_link", depthSource->getDepthOpticalFrame(), depthSource->getDepthTime());
+#endif
+#ifdef DEPTH_SOURCE_ROS
+                if(!depthSource->hasPublisher()) {
+                    // stop tracking if no data is available
+                    std::cout << "tracking stopped" << std::endl;
+                    trackFromVideo = false;
+                }
 #endif
             }
 
