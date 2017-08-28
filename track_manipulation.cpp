@@ -37,7 +37,7 @@
 // select a robot
 //#define JUSTIN      // using XML model and data files
 //#define VALKYRIE    // using URDF model and LCM subscriptions
-#define KUKA
+#define KUKA        // using ROS
 
 //#define WITH_BOTTLE
 //#define WITH_BOX
@@ -275,8 +275,8 @@ static const dart::SE3 initialT_co(make_float4(0.262348, -0.955909, -0.131952, 0
                                    make_float4(-0.739142, -0.111156, -0.664314, 0.702381));
 #endif
 
-static float3 initialTableNorm = make_float3(0.0182391, 0.665761, -0.745942);
-static float initialTableIntercept = -0.705196;
+//static float3 initialTableNorm = make_float3(0.0182391, 0.665761, -0.745942);
+//static float initialTableIntercept = -0.705196;
 
 int main(int argc, char *argv[]) {
 
@@ -298,7 +298,7 @@ int main(int argc, char *argv[]) {
     cudaSetDevice(0);
     cudaDeviceReset();
 
-    pangolin::CreateWindowAndBind("Main",640+4*panelWidth+1,2*480+1);
+    pangolin::CreateWindowAndBind("DART",640+4*panelWidth+1,2*480+1);
 
     glewInit();
     glutInit(&argc, argv);
@@ -317,30 +317,39 @@ int main(int argc, char *argv[]) {
     int glPPx = glWidth/2;
     int glPPy = glHeight/2;
 #ifdef ENABLE_JUSTIN
-    pangolin::OpenGlMatrixSpec glK = pangolin::ProjectionMatrixRDF_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
-    pangolin::OpenGlRenderState camState(glK);
+    pangolin::OpenGlMatrixSpec camMatrix = pangolin::ProjectionMatrixRDF_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
+    pangolin::OpenGlRenderState camState(camMatrix);
 #endif
 #ifdef VALKYRIE
-    pangolin::OpenGlMatrixSpec glK = pangolin::ProjectionMatrixRUB_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
+    pangolin::OpenGlMatrixSpec camMatrix = pangolin::ProjectionMatrixRUB_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
     pangolin::OpenGlMatrix viewpoint = pangolin::ModelViewLookAt(0, 0, 0.05, 0, -0.1, 0.2, pangolin::AxisY);
     //pangolin::OpenGlMatrix viewpoint = pangolin::ModelViewLookAt(0, 0, 0.05, 0, 0, 0.2, pangolin::AxisY);
     // the MultiSense and the Xtion have different oriented frames
 #ifdef DEPTH_SOURCE_LCM_MULTISENSE
     // Z forward, Y up
-    pangolin::OpenGlRenderState camState(glK, viewpoint);
+    pangolin::OpenGlRenderState camState(camMatrix, viewpoint);
 #endif
 #ifdef DEPTH_SOURCE_LCM_XTION
     // Z forward, Y down
-    pangolin::OpenGlRenderState camState(pangolin::OpenGlMatrix::RotateZ(M_PI)*glK, viewpoint);
+    pangolin::OpenGlRenderState camState(pangolin::OpenGlMatrix::RotateZ(M_PI)*camMatrix, viewpoint);
 #endif
 #endif
 #ifdef DEPTH_SOURCE_ROS
-    pangolin::OpenGlMatrixSpec glK = pangolin::ProjectionMatrixRUB_BottomLeft(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
-    pangolin::OpenGlMatrix viewpoint = pangolin::ModelViewLookAt(0, 0, 0.05, 0, -0.1, 0.2, pangolin::AxisY);
-    pangolin::OpenGlRenderState camState(pangolin::OpenGlMatrix::RotateZ(M_PI)*glK, viewpoint);
+    dart::RosDepthSource<float,uchar3> *depthSource = new dart::RosDepthSource<float,uchar3>();
+    depthSource->setup("/camera/depth/camera_info");
+    // camera projection matrix from real camera
+    const pangolin::OpenGlMatrixSpec camMatrix =pangolin::ProjectionMatrix(
+        depthSource->getDepthWidth(), depthSource->getDepthHeight(),
+        depthSource->getFocalLength().x, depthSource->getFocalLength().y,
+        depthSource->getPrincipalPoint().x, depthSource->getPrincipalPoint().y,
+        0.01,1000);
+    pangolin::OpenGlRenderState camState(camMatrix*pangolin::OpenGlMatrix::RotateX(M_PI));
 #endif
-    pangolin::View & camDisp = pangolin::Display("cam").SetAspect(640.0f/480.0f).SetHandler(new pangolin::Handler3D(camState));
+    // default camera settings:
+    //pangolin::OpenGlMatrixSpec camMatrix = pangolin::ProjectionMatrix(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
+    //pangolin::OpenGlRenderState camState(camMatrix*pangolin::OpenGlMatrix::RotateX(M_PI));
 
+    pangolin::View & camDisp = pangolin::Display("cam").SetAspect(640.0f/480.0f).SetHandler(new pangolin::Handler3D(camState));
     pangolin::View & imgDisp = pangolin::Display("img").SetAspect(640.0f/480.0f);
     pangolin::GlTexture imgTexDepthSize;
     pangolin::GlTexture imgTexPredictionSize;
@@ -444,9 +453,10 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef DEPTH_SOURCE_ROS
-    dart::RosDepthSource<float,uchar3> *depthSource = new dart::RosDepthSource<float,uchar3>();
-    depthSource->setup("/camera/depth/camera_info");
-    depthSource->subscribe_images("/camera/depth/image_rect_raw/compressedDepth", "/camera/rgb/image_rect_color/compressed");
+    //depthSource->subscribe_images("/camera/depth/image_rect_raw/compressedDepth", "/camera/rgb/image_rect_color/compressed");
+    depthSource->subscribe_images(
+                "/drop/camera/depth/image_rect_raw/compressedDepth",
+                "/camera/rgb/image_rect_color/compressed");
 //    depthSource->setup("/kinect2/sd/camera_info");
 //    depthSource->subscribe_images("/kinect2/sd/image_depth_rect", "/kinect2/sd/image_color_rect");
 #endif
@@ -669,9 +679,10 @@ int main(int argc, char *argv[]) {
     SegmentationPrior segm_prior(tracker);
     tracker.addPrior(&segm_prior);
 #endif
-
+#ifdef KUKA
     DebugDAPrior dbg_da_prior(tracker);
     tracker.addPrior(&dbg_da_prior);
+#endif
 
     std::cout<<"added models: "<<tracker.getNumModels()<<std::endl;
 
