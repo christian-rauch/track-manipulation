@@ -736,18 +736,14 @@ int main(int argc, char *argv[]) {
     static pangolin::Var<bool> showVoxelized("ui.showVoxelized",false,true);
     static pangolin::Var<float> levelSet("ui.levelSet",0.0,-10.0,10.0);
     static pangolin::Var<bool> showTrackedPoints("ui.showPoints",true,true);
-#if defined(DEPTH_SOURCE_LCM) || defined(DEPTH_SOURCE_ROS)
-    static pangolin::Var<bool> showPointColour("ui.showColour",true,true);
-#else
-    static pangolin::Var<bool> showPointColour("ui.showColour",false,true);
-#endif
-    static pangolin::Var<int> pointColoringObs("ui.pointColoringObs",0,0,NumPointColorings-1);
+    static pangolin::Var<int> pointColoringObs("ui.pointColoringObs",PointColoringRGB,0,NumPointColorings-1);
     static pangolin::Var<int> pointColoringPred("ui.pointColoringPred",0,0,NumPointColorings-1);
 #ifdef JUSTIN
     static pangolin::Var<float> planeOffset("ui.planeOffset",-0.03,-0.05,0);
 #endif
 
-    static pangolin::Var<int> debugImg("ui.debugImg",DebugObsToModErr,0,DebugN);
+    static pangolin::Var<int> debugImg("ui.debugImg",DebugObsToModDA,0,DebugN);
+    //static pangolin::Var<int> debugImg("ui.debugImg",DebugObsToModErr,0,DebugN);
 
     static pangolin::Var<bool> showObsSdf("ui.showObsSdf",false,true);
     static pangolin::Var<bool> showPredictedPoints("ui.showPredictedPoints",false,true);
@@ -1400,11 +1396,6 @@ int main(int argc, char *argv[]) {
             glEnableClientState(GL_VERTEX_ARRAY);
             glDisableClientState(GL_NORMAL_ARRAY);
             glVertexPointer(4, GL_FLOAT, 0, 0);
-
-            if(showPointColour)
-                pointColoringObs = PointColoringRGB;
-            else if(pointColoringObs == PointColoringRGB)
-                pointColoringObs = PointColoringNone;
 
             switch (pointColoringObs) {
             case PointColoringNone:
