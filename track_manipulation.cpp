@@ -45,6 +45,8 @@
 
 //#define DA_SDF
 #define DA_EXTERN
+//#define DA_SEGM
+#define DA_CPROB
 
 // switch depth sources
 #ifdef JUSTIN
@@ -67,9 +69,15 @@
     #define ENABLE_URDF
     #define ENABLE_URDF_ROS
     #define JOINTS_ROS
-    #ifdef DA_EXTERN
+    #ifdef DA_SEGM
         #include <dart_segm_prior/SegmentationPrior.hpp>
     #endif
+    #ifdef DA_CPROB
+        #include <dart_segm_prior/ClassProbDAPrior.hpp>
+    #endif
+    #define DA_DBG
+#endif
+#ifdef DA_DBG
     #include <dart_segm_prior/DebugDAPrior.hpp>
 #endif
 
@@ -273,10 +281,10 @@ static const dart::SE3 initialT_cj(make_float4(-0.476295, -0.0945505, -0.874187,
 static const dart::SE3 initialT_co(make_float4(0.262348, -0.955909, -0.131952, 0.0238097),
                                    make_float4(-0.620357, -0.271813, 0.735714, -0.178571),
                                    make_float4(-0.739142, -0.111156, -0.664314, 0.702381));
-#endif
 
-//static float3 initialTableNorm = make_float3(0.0182391, 0.665761, -0.745942);
-//static float initialTableIntercept = -0.705196;
+static float3 initialTableNorm = make_float3(0.0182391, 0.665761, -0.745942);
+static float initialTableIntercept = -0.705196;
+#endif
 
 int main(int argc, char *argv[]) {
 
@@ -524,7 +532,13 @@ int main(int argc, char *argv[]) {
     std::cout<<"found robot: "<<robot.getName()<<std::endl;
 
     const std::vector<uint8_t> colour_estimated_model = {255, 200, 0}; // yellow-orange
-    dart::HostOnlyModel robot_tracked = dart::readModelURDFxml(urdf_xml, "sdh_palm_link", colour_estimated_model);
+
+//    const std::string tracked_root_link = "sdh_palm_link";  // palm
+    const std::string tracked_root_link = "lwr_arm_6_link"; // forearm
+//    const std::string tracked_root_link = "lwr_arm_5_link";
+//    const std::string tracked_root_link = "lwr_arm_4_link";
+//    const std::string tracked_root_link = "world_frame";
+    dart::HostOnlyModel robot_tracked = dart::readModelURDFxml(urdf_xml, tracked_root_link, colour_estimated_model);
     tracker.addModel(robot_tracked,
                      modelSdfResolution,    // modelSdfResolution, def = 0.002
                      modelSdfPadding,       // modelSdfPadding, def = 0.07
@@ -675,11 +689,17 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef DA_EXTERN
-    // segmentation prior
-    SegmentationPrior segm_prior(tracker);
-    tracker.addPrior(&segm_prior);
+    #ifdef DA_SEGM
+        // segmentation prior
+        SegmentationPrior segm_prior(tracker);
+        tracker.addPrior(&segm_prior);
+    #endif
+    #ifdef DA_CPROB
+        ClassProbDAPrior cprob_prior(tracker, 0);
+        tracker.addPrior(&cprob_prior);
+    #endif
 #endif
-#ifdef KUKA
+#ifdef DA_DBG
     DebugDAPrior dbg_da_prior(tracker);
     tracker.addPrior(&dbg_da_prior);
 #endif
@@ -960,7 +980,9 @@ int main(int argc, char *argv[]) {
 
     FramePosePublisher frame_estimated(robot, robot_mm, "tracking");
 #endif
+#ifdef ENABLE_URDF
     resetRobotPose = true;
+#endif
 
     // -=-=-=-=- set up initial poses -=-=-=-=-
 #ifdef ENABLE_JUSTIN
@@ -1053,8 +1075,7 @@ int main(int argc, char *argv[]) {
         if(pangolin::Pushed(resetRobotPose) || useReportedPose) {
             // reset tracked pose
             robot_tracked_pose.setReducedArticulation(joints);
-            //const dart::SE3 Tpc = robot.getTransformFrameToCamera(robot.getJointFrame(robot.getJointIdByName("sdh_palm_joint")));
-            const dart::SE3 Tpc = robot.getTransformFrameToCamera(robot.getFrameIdByName("sdh_palm_link"));
+            const dart::SE3 Tpc = robot.getTransformFrameToCamera(robot.getFrameIdByName(tracked_root_link));
             robot_tracked_pose.setTransformModelToCamera(Tpc);
             robot_mm.setPose(robot_tracked_pose);
         }
@@ -1177,7 +1198,9 @@ int main(int argc, char *argv[]) {
             if (trackFromVideo || iteratePushed ) {
 
                 // only use reported pose initially
+#ifdef ENABLE_URDF
                 useReportedPose = false;
+#endif
 
                 tracker.optimizePoses();
 
@@ -1675,7 +1698,7 @@ int main(int argc, char *argv[]) {
         }
 
         if(pangolin::Pushed(record)) {
-                pangolin::DisplayBase().RecordOnRender("ffmpeg:[fps=50,bps=8388608,unique_filename]//screencap.avi");
+            pangolin::DisplayBase().RecordOnRender("ffmpeg:[fps=50,bps=8388608,unique_filename]//screencap.avi");
         }
 
         pangolin::FinishFrame();
