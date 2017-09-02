@@ -17,7 +17,8 @@ find_package(catkin REQUIRED COMPONENTS
     dart_lcm dart_urdf
     dart_ros
     cmake_modules
-    dart_segm_prior)
+    dart_segm_prior
+    offline_prediction_npy)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)

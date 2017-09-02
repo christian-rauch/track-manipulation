@@ -76,9 +76,15 @@
         #include <dart_segm_prior/ClassProbDAPrior.hpp>
     #endif
     #define DA_DBG
+    #define OFFLINE_PREDICTION
 #endif
+
 #ifdef DA_DBG
     #include <dart_segm_prior/DebugDAPrior.hpp>
+#endif
+
+#ifdef OFFLINE_PREDICTION
+    #include <offline_prediction_npy/OfflineClassProbabilities.hpp>
 #endif
 
 #ifdef DEPTH_SOURCE_ROS
@@ -482,6 +488,14 @@ int main(int argc, char *argv[]) {
 
     pangolin::Var<float> modelSdfResolution("lim.modelSdfResolution",defaultModelSdfResolution,defaultModelSdfResolution/2,defaultModelSdfResolution*2);
     pangolin::Var<float> modelSdfPadding("lim.modelSdfPadding",defaultModelSdfPadding,defaultModelSdfPadding/2,defaultModelSdfPadding*2);
+
+#ifdef OFFLINE_PREDICTION
+    // set parameters 'link_class_file' and 'pred_npy_path' befor initialisation
+    OfflineClassProbabilities pred(
+        "/drop/camera/depth/image_rect_raw/compressedDepth",
+        "/prediction/probability",
+        "/prediction/links");
+#endif
 
 #ifdef ENABLE_JUSTIN
     dart::ParamMapPoseReduction * handPoseReduction = dart::loadParamMapPoseReduction("../models/spaceJustin/justinHandParamMap.txt");
