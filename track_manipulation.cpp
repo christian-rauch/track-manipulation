@@ -45,8 +45,8 @@
 
 //#define DA_SDF
 #define DA_EXTERN
-//#define DA_SEGM
-#define DA_CPROB
+#define DA_SEGM // use for SDF with coloured links
+//#define DA_CPROB
 
 // switch depth sources
 #ifdef JUSTIN
@@ -77,6 +77,10 @@
     #endif
     #define DA_DBG
     #define OFFLINE_PREDICTION
+//    #define SYNC
+//    #define TRK_CTRL
+    #define ROS_OPENNI2
+//    #define ROS_KINECT2_QHD
 #endif
 
 #ifdef DA_DBG
@@ -85,6 +89,14 @@
 
 #ifdef OFFLINE_PREDICTION
     #include <offline_prediction_npy/OfflineClassProbabilities.hpp>
+#endif
+
+#ifdef SYNC
+    #include <dart_ros/Sync.hpp>
+#endif
+
+#ifdef TRK_CTRL
+    #include <dart_ros/TrackControl.hpp>
 #endif
 
 #ifdef DEPTH_SOURCE_ROS
@@ -313,6 +325,7 @@ int main(int argc, char *argv[]) {
     cudaDeviceReset();
 
     pangolin::CreateWindowAndBind("DART",640+4*panelWidth+1,2*480+1);
+    pangolin::FinishFrame(); // blank window
 
     glewInit();
     glutInit(&argc, argv);
@@ -350,7 +363,15 @@ int main(int argc, char *argv[]) {
 #endif
 #ifdef DEPTH_SOURCE_ROS
     dart::RosDepthSource<float,uchar3> *depthSource = new dart::RosDepthSource<float,uchar3>();
-    depthSource->setup("/camera/depth/camera_info");
+#ifdef ROS_OPENNI2
+    const std::string camera_topic = "/camera/depth/camera_info";
+#endif
+#ifdef ROS_KINECT2_QHD
+    const std::string camera_topic = "/kinect2/qhd/camera_info";
+#endif
+    depthSource->setup(camera_topic);
+    //depthSource->setup("/camera/depth/camera_info");
+//    depthSource->setup("/kinect2/qhd/camera_info");
     // camera projection matrix from real camera
     const pangolin::OpenGlMatrixSpec camMatrix =pangolin::ProjectionMatrix(
         depthSource->getDepthWidth(), depthSource->getDepthHeight(),
@@ -467,12 +488,21 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef DEPTH_SOURCE_ROS
-    //depthSource->subscribe_images("/camera/depth/image_rect_raw/compressedDepth", "/camera/rgb/image_rect_color/compressed");
-    depthSource->subscribe_images(
-                "/drop/camera/depth/image_rect_raw/compressedDepth",
-                "/camera/rgb/image_rect_color/compressed");
-//    depthSource->setup("/kinect2/sd/camera_info");
-//    depthSource->subscribe_images("/kinect2/sd/image_depth_rect", "/kinect2/sd/image_color_rect");
+    // Openni2
+#ifdef ROS_OPENNI2
+    static const std::string colour_topic = "/camera/rgb/image_rect_color/compressed";
+    static const std::string depth_topic = "/camera/depth/image_rect_raw/compressedDepth";
+//    const std::string depth_topic = "/filter/camera/depth/image_rect_raw/compressedDepth";
+#endif
+
+    // Kinect2
+#ifdef ROS_KINECT2_QHD
+    const std::string colour_topic = "/kinect2/qhd/image_color_rect/compressed";
+    const std::string depth_topic = "/kinect2/qhd/image_depth_rect/compressed";
+#endif
+
+    depthSource->setDistanceThreshold(1.5);
+    depthSource->subscribe_images(depth_topic, colour_topic);
 #endif
 
     tracker.addDepthSource(depthSource);
@@ -492,9 +522,14 @@ int main(int argc, char *argv[]) {
 #ifdef OFFLINE_PREDICTION
     // set parameters 'link_class_file' and 'pred_npy_path' befor initialisation
     OfflineClassProbabilities pred(
-        "/drop/camera/depth/image_rect_raw/compressedDepth",
+//        "/camera/depth/image_rect_raw/compressedDepth",
+        depth_topic,
+//        "/drop/camera/depth/image_rect_raw/compressedDepth",
+//        "/filter/drop/camera/depth/image_rect_raw/compressedDepth",
+//        "/kinect2/qhd/image_color_rect/compressed",
         "/prediction/probability",
-        "/prediction/links");
+        "/prediction/links",
+        true);
 #endif
 
 #ifdef ENABLE_JUSTIN
@@ -548,9 +583,10 @@ int main(int argc, char *argv[]) {
     const std::vector<uint8_t> colour_estimated_model = {255, 200, 0}; // yellow-orange
 
 //    const std::string tracked_root_link = "sdh_palm_link";  // palm
-    const std::string tracked_root_link = "lwr_arm_6_link"; // forearm
+//    const std::string tracked_root_link = "lwr_arm_6_link"; // forearm
 //    const std::string tracked_root_link = "lwr_arm_5_link";
-//    const std::string tracked_root_link = "lwr_arm_4_link";
+    const std::string tracked_root_link = "lwr_arm_4_link";
+//    const std::string tracked_root_link = "lwr_arm_3_link";
 //    const std::string tracked_root_link = "world_frame";
     dart::HostOnlyModel robot_tracked = dart::readModelURDFxml(urdf_xml, tracked_root_link, colour_estimated_model);
     tracker.addModel(robot_tracked,
@@ -790,7 +826,8 @@ int main(int argc, char *argv[]) {
     pangolin::Var<bool> iterateButton("opt.iterate",false,false);
     pangolin::Var<int> itersPerFrame("opt.itersPerFrame",3,0,30);
     pangolin::Var<float> normalThreshold("opt.normalThreshold",-1.01,-1.01,1.0);
-    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.035,0.0,0.1);
+//    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.035,0.0,0.1);
+    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.05,0.0,0.1);
     pangolin::Var<float> handRegularization("opt.handRegularization",0.1,0,10); // 1.0
     pangolin::Var<float> objectRegularization("opt.objectRegularization",0.1,0,10); // 1.0
     pangolin::Var<float> resetInfoThreshold("opt.resetInfoThreshold",1.0e-5,1e-5,2e-5);
@@ -989,13 +1026,58 @@ int main(int argc, char *argv[]) {
     // initilise joint names from visualised model
     jprovider.setJointNames(robot);
     jprovider.subscribe_joints("/joint_states");
+//    jprovider.subscribe_joints("/joint_states_merged");
 
     JointPublisherROS jpublisher("state_estimated");
 
     FramePosePublisher frame_estimated(robot, robot_mm, "tracking");
+
+    FramePosePublisher frame_tracked_f1(robot, robot_mm, "tracking/f1");
+    FramePosePublisher frame_tracked_f2(robot, robot_mm, "tracking/f2");
+    FramePosePublisher frame_tracked_f3(robot, robot_mm, "tracking/f3");
 #endif
 #ifdef ENABLE_URDF
     resetRobotPose = true;
+#endif
+#ifdef TRK_CTRL
+    TrackControl trk_ctrl;
+#endif
+
+#ifdef SYNC
+    // disconnect original sources
+    depthSource->disconnectSync();
+    jprovider.getSubscriber().shutdown();
+    // create new synchroniser with both sources
+    Sync sync;
+#ifdef DA_CPROB
+    // the probabilities need to be loaded before setting point cloud
+    // e.g. the callback need to be registered first
+    const Sync::CbImg pred_cb = [&pred, &cprob_prior](
+            const sensor_msgs::ImageConstPtr& img_colour,
+            const sensor_msgs::ImageConstPtr& img_depth)
+    {
+        // test both time sources
+        image_classification_msgs::PixelProbabilityList2ConstPtr pp;
+        pp = pred.getPP(std_msgs::HeaderConstPtr(new std_msgs::Header(img_depth->header)));
+        // test depth
+        if(pp->link_names.size()==0) {
+            // use colour
+            pp = pred.getPP(std_msgs::HeaderConstPtr(new std_msgs::Header(img_colour->header)));
+        }
+
+        if(pp->link_names.size()>0) {
+            cprob_prior.setClassProbability(*pp);
+        }
+    };
+    sync.addCbImg(pred_cb);
+#endif
+    message_filters::Subscriber<sensor_msgs::JointState> subj(jprovider.getNodeHandle(), jprovider.getSubscriber().getTopic(), 1);
+    sync.addSyncImgJoints(depthSource->getSubscriberColour(),
+                          depthSource->getSubscriberDepth(),
+                          std::bind(&RosDepthSource<float,uchar3>::setImageData, depthSource, std::placeholders::_1, std::placeholders::_2),
+                          subj,
+                          std::bind(&JointProviderROS::setJoints, &jprovider, std::placeholders::_1));
+
 #endif
 
     // -=-=-=-=- set up initial poses -=-=-=-=-
@@ -1065,6 +1147,11 @@ int main(int argc, char *argv[]) {
         tracker.stepForward();
 #endif
 
+#ifdef TRK_CTRL
+    resetRobotPose = trk_ctrl.getInitState();
+    trackFromVideo = trk_ctrl.getTrackState();
+#endif
+
 #ifdef ENABLE_LCM_JOINTS
 #ifdef ENABLE_URDF
         // get reported Valkyrie configuration
@@ -1079,8 +1166,15 @@ int main(int argc, char *argv[]) {
         // update reported pose
         const std::map<std::string, float> joints = jprovider.getJoints();
         robot_pose.setReducedArticulation(joints);
-        const dart::SE3 Tmc = jprovider.getTransform("world_frame", "camera_rgb_optical_frame");
+#ifdef ROS_OPENNI2
+        const static std::string optical_frame = "camera_rgb_optical_frame";
+#endif
+#ifdef ROS_KINECT2_QHD
+        const static std::string optical_frame = "kinect2_rgb_optical_frame";
+#endif
+        const dart::SE3 Tmc = jprovider.getTransform("world_frame", optical_frame);
 //        const dart::SE3 Tmc = jprovider.getTransform("world_frame", "kinect2_ir_optical_frame");
+//        const dart::SE3 Tmc = jprovider.getTransform("world_frame", "kinect2_rgb_optical_frame");
         robot_pose.setTransformModelToCamera(Tmc);
         robot.setPose(robot_pose);
 #endif
@@ -1090,7 +1184,18 @@ int main(int argc, char *argv[]) {
             // reset tracked pose
             robot_tracked_pose.setReducedArticulation(joints);
             const dart::SE3 Tpc = robot.getTransformFrameToCamera(robot.getFrameIdByName(tracked_root_link));
+#ifdef TRK_CTRL
+            // we want to perturb the palm
+            // palm pose in camera frame
+            const dart::SE3 Torg = robot.getTransformFrameToCamera(robot.getFrameIdByName("sdh_palm_link"));
+            // perturbed palm pose in camera frame
+            const dart::SE3 Tpp = Torg*trk_ctrl.getPerturbation();
+            // palm pose in tracked frame
+            const dart::SE3 Tfp = SE3Invert(Tpc) * Torg;
+            robot_tracked_pose.setTransformModelToCamera(Tpp * SE3Invert(Tfp));
+#else
             robot_tracked_pose.setTransformModelToCamera(Tpc);
+#endif
             robot_mm.setPose(robot_tracked_pose);
         }
 #endif
@@ -1154,6 +1259,9 @@ int main(int argc, char *argv[]) {
         opts.debugModToObsErr = ((pointColoringPred == PointColoringErr) || (debugImg == DebugModToObsErr));
         opts.debugJTJ = (debugImg == DebugJTJ);
         opts.numIterations = itersPerFrame;
+#ifdef TRK_CTRL
+        opts.numIterations = 1;
+#endif
 
         if (pangolin::Pushed(stepVideoBack)) {
             tracker.stepBackward();
@@ -1213,10 +1321,14 @@ int main(int argc, char *argv[]) {
 
                 // only use reported pose initially
 #ifdef ENABLE_URDF
-                useReportedPose = false;
+//                useReportedPose = false;
+#endif
+#ifdef TRK_CTRL
+                trk_ctrl.incrementIterations();
 #endif
 
-                tracker.optimizePoses();
+                //tracker.optimizePoses();
+                tracker.optimizePoses(!useReportedPose);
 
                 // update accumulated info
                 for (int m=0; m<tracker.getNumModels(); ++m) {
@@ -1266,13 +1378,18 @@ int main(int argc, char *argv[]) {
                 jpublisher.publish(robot_tracked_pose);
                 // publish link reported and estimated pose in camera frame
                 frame_estimated.publishFrame("sdh_palm_link", depthSource->getDepthOpticalFrame(), depthSource->getDepthTime());
+                frame_tracked_f1.publishFrame("sdh_finger_13_link", depthSource->getDepthOpticalFrame(), depthSource->getDepthTime());
+                frame_tracked_f2.publishFrame("sdh_finger_23_link", depthSource->getDepthOpticalFrame(), depthSource->getDepthTime());
+                frame_tracked_f3.publishFrame("sdh_thumb_3_link", depthSource->getDepthOpticalFrame(), depthSource->getDepthTime());
 #endif
 #ifdef DEPTH_SOURCE_ROS
+#ifndef TRK_CTRL
                 if(!depthSource->hasPublisher()) {
                     // stop tracking if no data is available
                     std::cout << "tracking stopped" << std::endl;
                     trackFromVideo = false;
                 }
+#endif
 #endif
             }
 
