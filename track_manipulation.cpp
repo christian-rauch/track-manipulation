@@ -81,6 +81,7 @@
 //    #define TRK_CTRL
     #define ROS_OPENNI2
 //    #define ROS_KINECT2_QHD
+    #define CORRECT_POSE
 #endif
 
 #ifdef DA_DBG
@@ -1198,6 +1199,20 @@ int main(int argc, char *argv[]) {
 #endif
             robot_mm.setPose(robot_tracked_pose);
         }
+#endif
+
+#ifdef CORRECT_POSE
+//        camera pose update:
+//        0.9999963045120239 -8.44709575176239e-07 -2.443790435791016e-06 3.30805778503418e-06
+//        -8.493661880493164e-07 0.9999977946281433 -8.009374141693115e-07 3.278255462646484e-07
+//        -2.443790435791016e-06 -8.081551641225815e-07 0.9999997615814209 1.072883605957031e-06
+        dart::SE3 pose_corr;
+        pose_corr.r0 = make_float4(0.9999963045120239, -8.44709575176239e-07, -2.443790435791016e-06, 3.30805778503418e-06);
+        pose_corr.r1 = make_float4(-8.493661880493164e-07, 0.9999977946281433, -8.009374141693115e-07, 3.278255462646484e-07);
+        pose_corr.r2 = make_float4(-2.443790435791016e-06, -8.081551641225815e-07, 0.9999997615814209, 1.072883605957031e-06);
+
+        const dart::SE3 Tpc = robot.getTransformFrameToCamera(robot.getFrameIdByName(tracked_root_link));
+        robot_tracked_pose.setTransformModelToCamera(Tpc*pose_corr);
 #endif
 
 #ifdef VALKYRIE
