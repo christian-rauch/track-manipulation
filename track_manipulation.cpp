@@ -588,7 +588,6 @@ int main(int argc, char *argv[]) {
 //    const std::string tracked_root_link = "lwr_arm_5_link";
     const std::string tracked_root_link = "lwr_arm_4_link";
 //    const std::string tracked_root_link = "lwr_arm_3_link";
-//    const std::string tracked_root_link = "base";
 //    const std::string tracked_root_link = "world_frame";
     dart::HostOnlyModel robot_tracked = dart::readModelURDFxml(urdf_xml, tracked_root_link, colour_estimated_model);
     tracker.addModel(robot_tracked,
@@ -1041,10 +1040,7 @@ int main(int argc, char *argv[]) {
     FramePosePublisher frame_tracked_f3(robot, robot_mm, "tracking/f3");
 #endif
 #ifdef ENABLE_URDF
-    // initialise tracked pose once with reported configuration
     resetRobotPose = true;
-//    bool reset_camera_pose_once = true;
-//    useReportedPose = true;
 #endif
 #ifdef TRK_CTRL
     TrackControl trk_ctrl;
@@ -1201,10 +1197,7 @@ int main(int argc, char *argv[]) {
             const dart::SE3 Tfp = SE3Invert(Tpc) * Torg;
             robot_tracked_pose.setTransformModelToCamera(Tpp * SE3Invert(Tfp));
 #else
-//            if(reset_camera_pose_once) {
-                robot_tracked_pose.setTransformModelToCamera(Tpc);
-//                reset_camera_pose_once = false;
-//            }
+            robot_tracked_pose.setTransformModelToCamera(Tpc);
 #endif
             robot_mm.setPose(robot_tracked_pose);
         }
@@ -1337,18 +1330,8 @@ int main(int argc, char *argv[]) {
                 trk_ctrl.incrementIterations();
 #endif
 
-//                const dart::SE3 cam_pose_1 = robot_tracked_pose.getTransformModelToCamera();
-                tracker.optimizePoses();
-//                tracker.optimizePoses(!useReportedPose);
-//                const dart::SE3 cam_pose_2 = robot_tracked_pose.getTransformModelToCamera();
-
-//                const dart::SE3 cam_pose_update = cam_pose_1 * SE3Invert(cam_pose_2);
-
-
-//                std::cout << "camera pose update:" << std::endl;
-//                std::cout << std::setprecision(16) << cam_pose_update.r0.x << " " << cam_pose_update.r0.y << " " << cam_pose_update.r0.z << " " << cam_pose_update.r0.w << std::endl;
-//                std::cout << std::setprecision(16) << cam_pose_update.r1.x << " " << cam_pose_update.r1.y << " " << cam_pose_update.r1.z << " " << cam_pose_update.r1.w << std::endl;
-//                std::cout << std::setprecision(16) << cam_pose_update.r2.x << " " << cam_pose_update.r2.y << " " << cam_pose_update.r2.z << " " << cam_pose_update.r2.w << std::endl;
+                //tracker.optimizePoses();
+                tracker.optimizePoses(!useReportedPose);
 
                 // update accumulated info
                 for (int m=0; m<tracker.getNumModels(); ++m) {
