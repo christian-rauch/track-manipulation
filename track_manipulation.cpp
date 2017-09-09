@@ -1203,16 +1203,21 @@ int main(int argc, char *argv[]) {
 
 #ifdef CORRECT_POSE
 //        camera pose update:
-//        0.9999963045120239 -8.44709575176239e-07 -2.443790435791016e-06 3.30805778503418e-06
-//        -8.493661880493164e-07 0.9999977946281433 -8.009374141693115e-07 3.278255462646484e-07
-//        -2.443790435791016e-06 -8.081551641225815e-07 0.9999997615814209 1.072883605957031e-06
+//        0.9996175765991211 0.01519704237580299 0.0229773223400116 -0.01859539747238159
+//        -0.01362381875514984 0.9976509213447571 -0.06710879504680634 0.06808236241340637
+//        -0.02394759654998779 0.06676891446113586 0.9974810481071472 0.03007566928863525
         dart::SE3 pose_corr;
-        pose_corr.r0 = make_float4(0.9999963045120239, -8.44709575176239e-07, -2.443790435791016e-06, 3.30805778503418e-06);
-        pose_corr.r1 = make_float4(-8.493661880493164e-07, 0.9999977946281433, -8.009374141693115e-07, 3.278255462646484e-07);
-        pose_corr.r2 = make_float4(-2.443790435791016e-06, -8.081551641225815e-07, 0.9999997615814209, 1.072883605957031e-06);
+        pose_corr.r0 = make_float4(0.9996175765991211, 0.01519704237580299, 0.0229773223400116, -0.01859539747238159);
+        pose_corr.r1 = make_float4(-0.01362381875514984, 0.9976509213447571, -0.06710879504680634, 0.06808236241340637);
+        pose_corr.r2 = make_float4(-0.02394759654998779, 0.06676891446113586, 0.9974810481071472, 0.03007566928863525);
 
-        const dart::SE3 Tpc = robot.getTransformFrameToCamera(robot.getFrameIdByName(tracked_root_link));
-        robot_tracked_pose.setTransformModelToCamera(Tpc*pose_corr);
+        {
+            // original reported pose
+            const dart::SE3 opose = robot_pose.getTransformModelToCamera();
+            // correct reported pose
+            robot_pose.setTransformModelToCamera(SE3Invert(pose_corr)*opose);
+            robot.setPose(robot_pose);
+        }
 #endif
 
 #ifdef VALKYRIE
