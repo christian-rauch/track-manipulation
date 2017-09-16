@@ -45,8 +45,8 @@
 
 //#define DA_SDF
 #define DA_EXTERN
-#define DA_SEGM // use for SDF with coloured links
-//#define DA_CPROB
+//#define DA_SEGM // use for SDF with coloured links
+#define DA_CPROB
 
 // switch depth sources
 #ifdef JUSTIN
@@ -79,6 +79,7 @@
     #define OFFLINE_PREDICTION
 //    #define SYNC
 //    #define TRK_CTRL
+//    #define CAM_CTRL
     #define ROS_OPENNI2
 //    #define ROS_KINECT2_QHD
 #endif
@@ -97,6 +98,10 @@
 
 #ifdef TRK_CTRL
     #include <dart_ros/TrackControl.hpp>
+#endif
+
+#ifdef CAM_CTRL
+    #include <dart_ros/CamControl.hpp>
 #endif
 
 #ifdef DEPTH_SOURCE_ROS
@@ -370,8 +375,6 @@ int main(int argc, char *argv[]) {
     const std::string camera_topic = "/kinect2/qhd/camera_info";
 #endif
     depthSource->setup(camera_topic);
-    //depthSource->setup("/camera/depth/camera_info");
-//    depthSource->setup("/kinect2/qhd/camera_info");
     // camera projection matrix from real camera
     const pangolin::OpenGlMatrixSpec camMatrix =pangolin::ProjectionMatrix(
         depthSource->getDepthWidth(), depthSource->getDepthHeight(),
@@ -388,6 +391,10 @@ int main(int argc, char *argv[]) {
     pangolin::View & imgDisp = pangolin::Display("img").SetAspect(640.0f/480.0f);
     pangolin::GlTexture imgTexDepthSize;
     pangolin::GlTexture imgTexPredictionSize;
+
+#ifdef CAM_CTRL
+    CamControl cc(&camState);
+#endif
 
     pangolin::DataLog infoLog;
     {
@@ -490,8 +497,8 @@ int main(int argc, char *argv[]) {
 #ifdef DEPTH_SOURCE_ROS
     // Openni2
 #ifdef ROS_OPENNI2
-    static const std::string colour_topic = "/camera/rgb/image_rect_color/compressed";
-    static const std::string depth_topic = "/camera/depth/image_rect_raw/compressedDepth";
+    const std::string colour_topic = "/camera/rgb/image_rect_color/compressed";
+    const std::string depth_topic = "/camera/depth/image_rect_raw/compressedDepth";
 //    const std::string depth_topic = "/filter/camera/depth/image_rect_raw/compressedDepth";
 #endif
 
@@ -502,6 +509,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     depthSource->setDistanceThreshold(1.5);
+//    depthSource->setRoiXY({247, 470}, {75, 243});   // exp1_poses3, colour_1504968754756182425.png
     depthSource->subscribe_images(depth_topic, colour_topic);
 #endif
 
@@ -520,13 +528,10 @@ int main(int argc, char *argv[]) {
     pangolin::Var<float> modelSdfPadding("lim.modelSdfPadding",defaultModelSdfPadding,defaultModelSdfPadding/2,defaultModelSdfPadding*2);
 
 #ifdef OFFLINE_PREDICTION
-    // set parameters 'link_class_file' and 'pred_npy_path' befor initialisation
+    // set parameters 'link_class_file' and 'pred_npy_path' before initialisation
     OfflineClassProbabilities pred(
-//        "/camera/depth/image_rect_raw/compressedDepth",
+        colour_topic,
         depth_topic,
-//        "/drop/camera/depth/image_rect_raw/compressedDepth",
-//        "/filter/drop/camera/depth/image_rect_raw/compressedDepth",
-//        "/kinect2/qhd/image_color_rect/compressed",
         "/prediction/probability",
         "/prediction/links",
         true);
@@ -745,7 +750,19 @@ int main(int argc, char *argv[]) {
         tracker.addPrior(&segm_prior);
     #endif
     #ifdef DA_CPROB
-        ClassProbDAPrior cprob_prior(tracker, 0);
+        float link_thresh = 0.0;  // accept all
+
+//        link_thresh = 0.15;  // for occl
+//        link_thresh = 0.25;  // exp2
+//        link_thresh = 0.3;  // for no-occl
+//        link_thresh = 0.5;  // for no-occl
+        link_thresh = 0.55;
+//        link_thresh = 0.6;
+//        link_thresh = 0.7;  // for no-occl
+//        link_thresh = 0.8;
+
+
+        ClassProbDAPrior cprob_prior(tracker, 0, link_thresh);
         tracker.addPrior(&cprob_prior);
     #endif
 #endif
@@ -824,10 +841,12 @@ int main(int argc, char *argv[]) {
 
     // optimization options
     pangolin::Var<bool> iterateButton("opt.iterate",false,false);
-    pangolin::Var<int> itersPerFrame("opt.itersPerFrame",3,0,30);
+//    pangolin::Var<int> itersPerFrame("opt.itersPerFrame",3,0,30);
+    pangolin::Var<int> itersPerFrame("opt.itersPerFrame",50,0,200);
     pangolin::Var<float> normalThreshold("opt.normalThreshold",-1.01,-1.01,1.0);
 //    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.035,0.0,0.1);
-    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.05,0.0,0.1);
+//    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.05,0.0,0.1);
+    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.06,0.0,0.1);
     pangolin::Var<float> handRegularization("opt.handRegularization",0.1,0,10); // 1.0
     pangolin::Var<float> objectRegularization("opt.objectRegularization",0.1,0,10); // 1.0
     pangolin::Var<float> resetInfoThreshold("opt.resetInfoThreshold",1.0e-5,1e-5,2e-5);
@@ -1026,7 +1045,7 @@ int main(int argc, char *argv[]) {
     // initilise joint names from visualised model
     jprovider.setJointNames(robot);
     jprovider.subscribe_joints("/joint_states");
-//    jprovider.subscribe_joints("/joint_states_merged");
+    usleep(500000);
 
     JointPublisherROS jpublisher("state_estimated");
 
@@ -1035,6 +1054,9 @@ int main(int argc, char *argv[]) {
     FramePosePublisher frame_tracked_f1(robot, robot_mm, "tracking/f1");
     FramePosePublisher frame_tracked_f2(robot, robot_mm, "tracking/f2");
     FramePosePublisher frame_tracked_f3(robot, robot_mm, "tracking/f3");
+    FramePosePublisher frame_tracked_f1tip(robot, robot_mm, "tracking/f1tip");
+    FramePosePublisher frame_tracked_f2tip(robot, robot_mm, "tracking/f2tip");
+    FramePosePublisher frame_tracked_f3tip(robot, robot_mm, "tracking/f3tip");
 #endif
 #ifdef ENABLE_URDF
     resetRobotPose = true;
@@ -1376,11 +1398,16 @@ int main(int argc, char *argv[]) {
 #ifdef JOINTS_ROS
                 // publish estimated joint configuration
                 jpublisher.publish(robot_tracked_pose);
+                const std::string depth_frame = depthSource->getDepthOpticalFrame();
+                const uint64_t depth_time = depthSource->getDepthTime();
                 // publish link reported and estimated pose in camera frame
-                frame_estimated.publishFrame("sdh_palm_link", depthSource->getDepthOpticalFrame(), depthSource->getDepthTime());
-                frame_tracked_f1.publishFrame("sdh_finger_13_link", depthSource->getDepthOpticalFrame(), depthSource->getDepthTime());
-                frame_tracked_f2.publishFrame("sdh_finger_23_link", depthSource->getDepthOpticalFrame(), depthSource->getDepthTime());
-                frame_tracked_f3.publishFrame("sdh_thumb_3_link", depthSource->getDepthOpticalFrame(), depthSource->getDepthTime());
+                frame_estimated.publishFrame("sdh_palm_link", depth_frame, depth_time);
+                frame_tracked_f1.publishFrame("sdh_finger_13_link", depth_frame, depth_time);
+                frame_tracked_f2.publishFrame("sdh_finger_23_link", depth_frame, depth_time);
+                frame_tracked_f3.publishFrame("sdh_thumb_3_link", depth_frame, depth_time);
+                frame_tracked_f1tip.publishFrame("sdh_finger_1_tip_link", depth_frame, depth_time);
+                frame_tracked_f2tip.publishFrame("sdh_finger_2_tip_link", depth_frame, depth_time);
+                frame_tracked_f3tip.publishFrame("sdh_thumb_tip_link", depth_frame, depth_time);
 #endif
 #ifdef DEPTH_SOURCE_ROS
 #ifndef TRK_CTRL
@@ -1402,7 +1429,8 @@ int main(int argc, char *argv[]) {
         //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //        glClearColor (1.0, 1.0, 1.0, 1.0);
-        const float bkg = 0.5f;
+        //const float bkg = 0.5f;
+        const float bkg = 1.0f;
         glClearColor(bkg, bkg, bkg, 1);
         glShadeModel (GL_SMOOTH);
         float4 lightPosition = make_float4(normalize(make_float3(-0.4405,-0.5357,-0.619)),0);
