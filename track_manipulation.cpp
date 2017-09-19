@@ -32,6 +32,11 @@
 #include <SDFPrior.hpp>
 //#include <SegmentationPrior.hpp>
 
+#include <viridis.hpp>
+
+#include <thread>
+#include <atomic>
+
 #define EIGEN_DONT_ALIGN
 
 // select a robot
@@ -79,7 +84,7 @@
     #define OFFLINE_PREDICTION
 //    #define SYNC
 //    #define TRK_CTRL
-//    #define CAM_CTRL
+    #define CAM_CTRL
     #define ROS_OPENNI2
 //    #define ROS_KINECT2_QHD
 #endif
@@ -329,19 +334,25 @@ int main(int argc, char *argv[]) {
     cudaSetDevice(0);
     cudaDeviceReset();
 
-    pangolin::CreateWindowAndBind("DART",640+4*panelWidth+1,2*480+1);
+    //pangolin::CreateWindowAndBind("DART",640+4*panelWidth+1,2*480+1);
+    pangolin::CreateWindowAndBind("DART",2*640+3*panelWidth+1,2*480+1);
     pangolin::FinishFrame(); // blank window
 
     glewInit();
     glutInit(&argc, argv);
     dart::Tracker tracker;
 
+    // enable alpha blending
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     // -=-=-=- pangolin window setup -=-=-=-
 
-    pangolin::CreatePanel("lim").SetBounds(0.0,1.0,1.0,pangolin::Attach::Pix(-panelWidth));
+//    pangolin::CreatePanel("lim").SetBounds(0.0,1.0,1.0,pangolin::Attach::Pix(-panelWidth));
     pangolin::CreatePanel("ui").SetBounds(0.0, 1.0, 0.0, pangolin::Attach::Pix(panelWidth));
     pangolin::CreatePanel("opt").SetBounds(0.0,1.0,pangolin::Attach::Pix(panelWidth), pangolin::Attach::Pix(2*panelWidth));
-    pangolin::CreatePanel("pose").SetBounds(0.0,1.0,pangolin::Attach::Pix(-panelWidth), pangolin::Attach::Pix(-2*panelWidth));
+    //pangolin::CreatePanel("pose").SetBounds(0.0,1.0,pangolin::Attach::Pix(-panelWidth), pangolin::Attach::Pix(-2*panelWidth));
+    pangolin::CreatePanel("pose").SetBounds(0.0,1.0,1.0,pangolin::Attach::Pix(-panelWidth));
 
     int glWidth = 640;
     int glHeight= 480;
@@ -387,10 +398,16 @@ int main(int argc, char *argv[]) {
     //pangolin::OpenGlMatrixSpec camMatrix = pangolin::ProjectionMatrix(glWidth,glHeight,glFL,glFL,glPPx,glPPy,0.01,1000);
     //pangolin::OpenGlRenderState camState(camMatrix*pangolin::OpenGlMatrix::RotateX(M_PI));
 
-    pangolin::View & camDisp = pangolin::Display("cam").SetAspect(640.0f/480.0f).SetHandler(new pangolin::Handler3D(camState));
+    pangolin::View & camDisp = pangolin::Display("cam").SetAspect(640.0f/480.0f).SetHandler(new pangolin::Handler3D(camState,pangolin::AxisY));
     pangolin::View & imgDisp = pangolin::Display("img").SetAspect(640.0f/480.0f);
     pangolin::GlTexture imgTexDepthSize;
     pangolin::GlTexture imgTexPredictionSize;
+
+    pangolin::View & viewColour = pangolin::Display("colour").SetAspect(640.0f/480.0f);
+    pangolin::View & viewDepth = pangolin::Display("depth").SetAspect(640.0f/480.0f);
+
+    pangolin::GlTexture imgTexColour;
+    pangolin::GlTexture imgTexDepth;
 
 #ifdef CAM_CTRL
     CamControl cc(&camState);
@@ -407,11 +424,14 @@ int main(int argc, char *argv[]) {
     }
 
     pangolin::Display("multi")
-            .SetBounds(1.0, 0.0, pangolin::Attach::Pix(2*panelWidth), pangolin::Attach::Pix(-2*panelWidth))
+            //.SetBounds(1.0, 0.0, pangolin::Attach::Pix(2*panelWidth), pangolin::Attach::Pix(-2*panelWidth))
+            .SetBounds(1.0, 0.0, pangolin::Attach::Pix(2*panelWidth), pangolin::Attach::Pix(-panelWidth))
             .SetLayout(pangolin::LayoutEqual)
             .AddDisplay(camDisp)
             //            .AddDisplay(infoPlotter)
-            .AddDisplay(imgDisp);
+            .AddDisplay(imgDisp)
+            .AddDisplay(viewColour)
+            .AddDisplay(viewDepth);
 
 //    imgDisp.Show(false);
 
@@ -523,6 +543,9 @@ int main(int argc, char *argv[]) {
 
     imgTexDepthSize.Reinitialise(depthSource->getDepthWidth(), depthSource->getDepthHeight());
     imgTexPredictionSize.Reinitialise(depthSource->getDepthWidth()/2, depthSource->getDepthHeight()/2);
+
+    imgTexColour.Reinitialise(depthSource->getDepthWidth(), depthSource->getDepthHeight());
+    imgTexDepth.Reinitialise(depthSource->getDepthWidth(), depthSource->getDepthHeight());
 
     pangolin::Var<float> modelSdfResolution("lim.modelSdfResolution",defaultModelSdfResolution,defaultModelSdfResolution/2,defaultModelSdfResolution*2);
     pangolin::Var<float> modelSdfPadding("lim.modelSdfPadding",defaultModelSdfPadding,defaultModelSdfPadding/2,defaultModelSdfPadding*2);
@@ -756,7 +779,7 @@ int main(int argc, char *argv[]) {
 //        link_thresh = 0.25;  // exp2
 //        link_thresh = 0.3;  // for no-occl
 //        link_thresh = 0.5;  // for no-occl
-        link_thresh = 0.55;
+        link_thresh = 0.55;   // exp3
 //        link_thresh = 0.6;
 //        link_thresh = 0.7;  // for no-occl
 //        link_thresh = 0.8;
@@ -797,6 +820,8 @@ int main(int argc, char *argv[]) {
     }
 
     // pangolin variables
+    std::atomic_bool do_track(true);
+    std::atomic_bool do_reset(true);
 //    static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
     static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
     static pangolin::Var<bool> stepVideo("ui.stepVideo",false,false);
@@ -845,8 +870,8 @@ int main(int argc, char *argv[]) {
     pangolin::Var<int> itersPerFrame("opt.itersPerFrame",50,0,200);
     pangolin::Var<float> normalThreshold("opt.normalThreshold",-1.01,-1.01,1.0);
 //    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.035,0.0,0.1);
-//    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.05,0.0,0.1);
-    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.06,0.0,0.1);
+    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.05,0.0,0.1);
+//    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.06,0.0,0.1);
     pangolin::Var<float> handRegularization("opt.handRegularization",0.1,0,10); // 1.0
     pangolin::Var<float> objectRegularization("opt.objectRegularization",0.1,0,10); // 1.0
     pangolin::Var<float> resetInfoThreshold("opt.resetInfoThreshold",1.0e-5,1e-5,2e-5);
@@ -1059,10 +1084,10 @@ int main(int argc, char *argv[]) {
     FramePosePublisher frame_tracked_f3tip(robot, robot_mm, "tracking/f3tip");
 #endif
 #ifdef ENABLE_URDF
-    resetRobotPose = true;
+    do_reset = true;
 #endif
 #ifdef TRK_CTRL
-    TrackControl trk_ctrl;
+    TrackControl trk_ctrl(do_track, do_reset);
 #endif
 
 #ifdef SYNC
@@ -1158,20 +1183,24 @@ int main(int argc, char *argv[]) {
     TrackingMode trackingMode = ModeObjOnTable;
 #endif
 
-    // ------------------- main loop ---------------------
-    for (int pangolinFrame=1; !pangolin::ShouldQuit(); ++pangolinFrame) {
+    static pangolin::Var<bool> filteredNorms("ui.filteredNorms",false,true);
+    static pangolin::Var<bool> filteredVerts("ui.filteredVerts",false,true);
 
-        if (pangolin::HasResized()) {
-            pangolin::DisplayBase().ActivateScissorAndClear();
+    std::thread thread_opt([&](){
+        // optmisation thread
+        while(true) {
+        // tracking on/off
+        if(trackFromVideo.GuiChanged()) {
+            do_track.store(trackFromVideo);
         }
+        trackFromVideo = do_track;
 
+        // reset
+        if(resetRobotPose.GuiChanged()) {
+            do_reset.store(resetRobotPose);
+        }
 #ifdef ENABLE_URDF
         tracker.stepForward();
-#endif
-
-#ifdef TRK_CTRL
-    resetRobotPose = trk_ctrl.getInitState();
-    trackFromVideo = trk_ctrl.getTrackState();
 #endif
 
 #ifdef ENABLE_LCM_JOINTS
@@ -1202,7 +1231,7 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef KUKA
-        if(pangolin::Pushed(resetRobotPose) || useReportedPose) {
+        if(do_reset.exchange(false) || useReportedPose) {
             // reset tracked pose
             robot_tracked_pose.setReducedArticulation(joints);
             const dart::SE3 Tpc = robot.getTransformFrameToCamera(robot.getFrameIdByName(tracked_root_link));
@@ -1289,22 +1318,6 @@ int main(int argc, char *argv[]) {
             tracker.stepBackward();
         }
 
-        bool iteratePushed = Pushed(iterateButton);
-
-        if (pangolinFrame % fpsWindow == 0) {
-            pangolin::basetime time = pangolin::TimeNow();
-            if (trackFromVideo) {
-                static int totalFrames = 0;
-                static double totalTime = 0;
-                totalFrames += fpsWindow;
-                totalTime += pangolin::TimeDiff_s(lastTime,time);
-                fps = totalFrames / totalTime;
-            } else {
-                fps = fpsWindow / pangolin::TimeDiff_s(lastTime,time);
-            }
-            lastTime = time;
-        }
-
         //////////////////////////////////////////////////////////////////////////////////////////////////////////
         //
         //
@@ -1312,9 +1325,6 @@ int main(int argc, char *argv[]) {
         //                                                                                                      //
         //////////////////////////////////////////////////////////////////////////////////////////////////////////
         {
-
-            static pangolin::Var<bool> filteredNorms("ui.filteredNorms",false,true);
-            static pangolin::Var<bool> filteredVerts("ui.filteredVerts",false,true);
 
             if (filteredNorms.GuiChanged()) {
                 tracker.setFilteredNorms(filteredNorms);
@@ -1338,8 +1348,10 @@ int main(int argc, char *argv[]) {
                 }
             }
 
+            bool iteratePushed = Pushed(iterateButton);
+
             // run optimization method
-            if (trackFromVideo || iteratePushed ) {
+            if (do_track || iteratePushed ) {
 
                 // only use reported pose initially
 #ifdef ENABLE_URDF
@@ -1414,12 +1426,38 @@ int main(int argc, char *argv[]) {
                 if(!depthSource->hasPublisher()) {
                     // stop tracking if no data is available
                     std::cout << "tracking stopped" << std::endl;
-                    trackFromVideo = false;
+                    do_track = false;
                 }
 #endif
 #endif
             }
 
+        }
+//        usleep(100000);
+        } // while true loop
+    });
+
+    // ------------------- main loop ---------------------
+    for (int pangolinFrame=1; !pangolin::ShouldQuit(); ++pangolinFrame) {
+
+        const pangolin::basetime tstart = pangolin::TimeNow();
+
+        if (pangolin::HasResized()) {
+            pangolin::DisplayBase().ActivateScissorAndClear();
+        }
+
+        if (pangolinFrame % fpsWindow == 0) {
+            pangolin::basetime time = pangolin::TimeNow();
+            if (do_track) {
+                static int totalFrames = 0;
+                static double totalTime = 0;
+                totalFrames += fpsWindow;
+                totalTime += pangolin::TimeDiff_s(lastTime,time);
+                fps = totalFrames / totalTime;
+            } else {
+                fps = fpsWindow / pangolin::TimeDiff_s(lastTime,time);
+            }
+            lastTime = time;
         }
 
         //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1497,31 +1535,6 @@ int main(int argc, char *argv[]) {
 
             glPopMatrix();
 
-        }
-
-        if (showReported) {
-            glColor3ub(0xfa,0x85,0x7c);
-            glEnable(GL_COLOR_MATERIAL);
-
-#ifdef ENABLE_JUSTIN
-            memcpy(spaceJustinPose.getReducedArticulation(),reportedJointAngles[depthSource->getFrame()],spaceJustinPose.getReducedArticulatedDimensions()*sizeof(float));
-            spaceJustinPose.projectReducedToFull();
-            spaceJustin.setPose(spaceJustinPose);
-            spaceJustin.renderWireframe();
-#endif
-
-#ifdef VALKYRIE
-            // render Valkyrie reported state as wireframe model, origin is the camera centre
-            val.setPose(val_pose);
-            val.renderWireframe();
-#endif
-
-#ifdef KUKA
-            robot.renderWireframe();
-#endif
-
-            // glColor3ub(0,0,0);
-            // glutSolidSphere(0.02,10,10);
         }
 
         glPointSize(1.0f);
@@ -1635,6 +1648,32 @@ int main(int argc, char *argv[]) {
 
             glPointSize(1.0f);
 
+        }
+
+        if (showReported) {
+            glColor3ub(0xfa,0x85,0x7c);
+            glEnable(GL_COLOR_MATERIAL);
+
+#ifdef ENABLE_JUSTIN
+            memcpy(spaceJustinPose.getReducedArticulation(),reportedJointAngles[depthSource->getFrame()],spaceJustinPose.getReducedArticulatedDimensions()*sizeof(float));
+            spaceJustinPose.projectReducedToFull();
+            spaceJustin.setPose(spaceJustinPose);
+            spaceJustin.renderWireframe();
+#endif
+
+#ifdef VALKYRIE
+            // render Valkyrie reported state as wireframe model, origin is the camera centre
+            val.setPose(val_pose);
+            val.renderWireframe();
+#endif
+
+#ifdef KUKA
+//            robot.renderWireframe();
+            robot.render(127);
+#endif
+
+            // glColor3ub(0,0,0);
+            // glutSolidSphere(0.02,10,10);
         }
 
 #ifdef USE_CONTACT_PRIOR
@@ -1851,18 +1890,59 @@ int main(int argc, char *argv[]) {
             break;
         }
 
+        {
+            viewColour.ActivateScissorAndClear();
+            glDisable(GL_LIGHTING);
+            glColor4ub(255,255,255,255);
+
+            imgTexColour.Upload(depthSource->getColor(),GL_RGB,GL_UNSIGNED_BYTE);
+            imgTexColour.RenderToViewportFlipY();
+
+            viewDepth.ActivateScissorAndClear();
+            glDisable(GL_LIGHTING);
+            glColor4ub(255,255,255,255);
+
+//            static const float depthMin = 0.5;
+//            static const float depthMax = 1.5;
+            static const float depthMin = 0.7;
+            static const float depthMax = 1.3;
+
+            const auto * depth = depthSource->getDepth();
+
+            for (int i=0; i<depthSource->getDepthWidth()*depthSource->getDepthHeight(); ++i) {
+                float dscale = (depth[i]*depthSource->getScaleToMeters()-depthMin)/float(depthMax - depthMin);
+                dscale = std::max(0.0f, std::min(dscale,1.0f));
+
+                // colour map look up
+                const uint8_t dindex = dscale * 255;
+                const std::array<float,3> vircol = viridis[dindex];
+                imgDepthSize[i] = make_uchar3(vircol[0]*255, vircol[1]*255, vircol[2]*255);
+
+                if (depth[i] == 0) {
+                    imgDepthSize[i] = make_uchar3(255,255,255);
+                }
+            }
+
+            imgTexDepth.Upload(imgDepthSize.hostPtr(),GL_RGB,GL_UNSIGNED_BYTE);
+            imgTexDepth.RenderToViewportFlipY();
+        }
+
         cudaError_t err = cudaGetLastError();
         if (err != cudaSuccess) {
             std::cerr << cudaGetErrorString(err) << std::endl;
         }
 
         if(pangolin::Pushed(record)) {
-            pangolin::DisplayBase().RecordOnRender("ffmpeg:[fps=50,bps=8388608,unique_filename]//screencap.avi");
+            pangolin::DisplayBase().RecordOnRender("ffmpeg:[fps=30,unique_filename]//screencap.avi");
+            //pangolin::DisplayBase().RecordOnRender("ffmpeg:[fps=50,bps=8388608,unique_filename]//screencap.avi");
         }
 
         pangolin::FinishFrame();
 
-        if (pangolin::Pushed(stepVideo) || trackFromVideo || pangolinFrame == 1) {
+        // restrict framerate to 30fps
+        pangolin::WaitUntil(pangolin::TimeAdd(tstart,pangolin::TimeFromSeconds(1.0/30.0)));
+
+        if (pangolin::Pushed(stepVideo) || do_track || pangolinFrame == 1) {
 #ifdef ENABLE_JUSTIN
             tracker.stepForward();
 
