@@ -1105,7 +1105,7 @@ int main(int argc, char *argv[]) {
             const sensor_msgs::ImageConstPtr& img_depth)
     {
         // test both time sources
-        image_classification_msgs::PixelProbabilityList2ConstPtr pp;
+        dart_msgs::PixelProbabilityList2ConstPtr pp;
         pp = pred.getPP(std_msgs::HeaderConstPtr(new std_msgs::Header(img_depth->header)));
         // test depth
         if(pp->link_names.size()==0) {
