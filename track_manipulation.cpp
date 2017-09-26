@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <GL/glew.h>
+//#include <GL/glew.h>
+#include "/usr/include/GL/glew.h"
 #include <GL/freeglut.h>
 
 #include <pangolin/pangolin.h>
@@ -1440,7 +1441,7 @@ int main(int argc, char *argv[]) {
     // ------------------- main loop ---------------------
     for (int pangolinFrame=1; !pangolin::ShouldQuit(); ++pangolinFrame) {
 
-        const pangolin::basetime tstart = pangolin::TimeNow();
+        const std::chrono::system_clock::time_point tstart = std::chrono::system_clock::now();
 
         if (pangolin::HasResized()) {
             pangolin::DisplayBase().ActivateScissorAndClear();
@@ -1940,7 +1941,7 @@ int main(int argc, char *argv[]) {
         pangolin::FinishFrame();
 
         // restrict framerate to 30fps
-        pangolin::WaitUntil(pangolin::TimeAdd(tstart,pangolin::TimeFromSeconds(1.0/30.0)));
+        std::this_thread::sleep_until(tstart+std::chrono::microseconds(uint(1.0/30.0*1e6)));
 
         if (pangolin::Pushed(stepVideo) || do_track || pangolinFrame == 1) {
 #ifdef ENABLE_JUSTIN
