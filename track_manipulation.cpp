@@ -51,8 +51,8 @@
 
 //#define DA_SDF
 #define DA_EXTERN
-//#define DA_SEGM // use for SDF with coloured links
-#define DA_CPROB
+#define DA_SEGM // use for SDF with coloured links
+//#define DA_CPROB
 
 // switch depth sources
 #ifdef JUSTIN
@@ -780,8 +780,9 @@ int main(int argc, char *argv[]) {
 //        link_thresh = 0.25;  // exp2
 //        link_thresh = 0.3;  // for no-occl
 //        link_thresh = 0.5;  // for no-occl
-        link_thresh = 0.55;   // exp3
+//        link_thresh = 0.55;   // exp3
 //        link_thresh = 0.6;
+//        link_thresh = 0.65;
 //        link_thresh = 0.7;  // for no-occl
 //        link_thresh = 0.8;
 
@@ -839,7 +840,7 @@ int main(int argc, char *argv[]) {
     static pangolin::Var<bool> showCameraPose("ui.showCameraPose",false,true);
     static pangolin::Var<bool> showEstimatedPose("ui.showEstimate",true,true);
     //static pangolin::Var<bool> showEstimatedPose("ui.showEstimate",false,true);
-    //static pangolin::Var<bool> showReported("ui.showReported",false,true);
+//    static pangolin::Var<bool> showReported("ui.showReported",false,true);
     static pangolin::Var<bool> showReported("ui.showReported",true,true);
 
 #ifdef JUSTIN
@@ -867,12 +868,12 @@ int main(int argc, char *argv[]) {
 
     // optimization options
     pangolin::Var<bool> iterateButton("opt.iterate",false,false);
-//    pangolin::Var<int> itersPerFrame("opt.itersPerFrame",3,0,30);
-    pangolin::Var<int> itersPerFrame("opt.itersPerFrame",50,0,200);
+    pangolin::Var<int> itersPerFrame("opt.itersPerFrame",3,0,30);
+//    pangolin::Var<int> itersPerFrame("opt.itersPerFrame",50,0,200);
     pangolin::Var<float> normalThreshold("opt.normalThreshold",-1.01,-1.01,1.0);
 //    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.035,0.0,0.1);
-    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.05,0.0,0.1);
-//    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.06,0.0,0.1);
+//    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.05,0.0,0.1);
+    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.06,0.0,0.1);
     pangolin::Var<float> handRegularization("opt.handRegularization",0.1,0,10); // 1.0
     pangolin::Var<float> objectRegularization("opt.objectRegularization",0.1,0,10); // 1.0
     pangolin::Var<float> resetInfoThreshold("opt.resetInfoThreshold",1.0e-5,1e-5,2e-5);
@@ -1670,7 +1671,8 @@ int main(int argc, char *argv[]) {
 
 #ifdef KUKA
 //            robot.renderWireframe();
-            robot.render(127);
+//            robot.render(127);
+            robot.render(200);
 #endif
 
             // glColor3ub(0,0,0);
