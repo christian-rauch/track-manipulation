@@ -51,8 +51,8 @@
 
 //#define DA_SDF
 #define DA_EXTERN
-#define DA_SEGM // use for SDF with coloured links
-//#define DA_CPROB
+//#define DA_SEGM // use for SDF with coloured links
+#define DA_CPROB
 
 // switch depth sources
 #ifdef JUSTIN
@@ -85,7 +85,7 @@
     #define OFFLINE_PREDICTION
 //    #define SYNC
 //    #define TRK_CTRL
-    #define CAM_CTRL
+//    #define CAM_CTRL
     #define ROS_OPENNI2
 //    #define ROS_KINECT2_QHD
 #endif
@@ -616,6 +616,7 @@ int main(int argc, char *argv[]) {
 //    const std::string tracked_root_link = "lwr_arm_5_link";
     const std::string tracked_root_link = "lwr_arm_4_link";
 //    const std::string tracked_root_link = "lwr_arm_3_link";
+//    const std::string tracked_root_link = "lwr_arm_1_link";
 //    const std::string tracked_root_link = "world_frame";
     dart::HostOnlyModel robot_tracked = dart::readModelURDFxml(urdf_xml, tracked_root_link, colour_estimated_model);
     tracker.addModel(robot_tracked,
@@ -629,6 +630,7 @@ int main(int argc, char *argv[]) {
                      true      // cacheSdfs
                      );
 #endif
+    uint64_t depth_time_prev = -1;
 
 #ifdef VALKYRIE
     // original Valkyrie model
@@ -778,7 +780,11 @@ int main(int argc, char *argv[]) {
 
 //        link_thresh = 0.15;  // for occl
 //        link_thresh = 0.25;  // exp2
+//        link_thresh = 0.2;  // vid_box2 (-s 7)
 //        link_thresh = 0.3;  // for no-occl
+        link_thresh = 0.3;  // vid_alpen2 (-s 7)
+//        link_thresh = 0.35;
+//        link_thresh = 0.4;  // vid_alpen (-s 10)
 //        link_thresh = 0.5;  // for no-occl
 //        link_thresh = 0.55;   // exp3
 //        link_thresh = 0.6;
@@ -873,7 +879,8 @@ int main(int argc, char *argv[]) {
     pangolin::Var<float> normalThreshold("opt.normalThreshold",-1.01,-1.01,1.0);
 //    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.035,0.0,0.1);
 //    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.05,0.0,0.1);
-    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.06,0.0,0.1);
+//    pangolin::Var<float> distanceThreshold("opt.distThr",0.06,0.0,0.1);
+    pangolin::Var<float> distanceThreshold("opt.distThr",0.04,0.0,0.1);
     pangolin::Var<float> handRegularization("opt.handRegularization",0.1,0,10); // 1.0
     pangolin::Var<float> objectRegularization("opt.objectRegularization",0.1,0,10); // 1.0
     pangolin::Var<float> resetInfoThreshold("opt.resetInfoThreshold",1.0e-5,1e-5,2e-5);
@@ -895,8 +902,9 @@ int main(int argc, char *argv[]) {
 
 
     pangolin::Var<float> infoAccumulationRate("opt.infoAccumulationRate",0.1,0.0,1.0); // 0.8
-    pangolin::Var<float> maxRotationDamping("opt.maxRotationalDamping",50,0,200);
-    pangolin::Var<float> maxTranslationDamping("opt.maxTranslationDamping",5,0,10);
+    pangolin::Var<float> maxRotationDamping("opt.maxRotDamp",50,0,200);
+//    pangolin::Var<float> maxRotationDamping("opt.maxRotDamp",150,0,200);
+    pangolin::Var<float> maxTranslationDamping("opt.maxTransDamp",5,0,10);
 
 #ifdef JUSTIN
     pangolin::Var<float> tableNormX("opt.tableNormX",initialTableNorm.x,-1,1);
@@ -1231,6 +1239,12 @@ int main(int argc, char *argv[]) {
         robot_pose.setTransformModelToCamera(Tmc);
         robot.setPose(robot_pose);
 #endif
+        // reset robot pose when jumps in time have been detected (restat log)
+        if(depthSource->getDepthTime()<depth_time_prev) {
+            do_reset.exchange(true);
+            do_track.exchange(true);
+        }
+        depth_time_prev = depthSource->getDepthTime();
 
 #ifdef KUKA
         if(do_reset.exchange(false) || useReportedPose) {
