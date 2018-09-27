@@ -11,10 +11,11 @@ add_definitions(-std=c++11)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
     dart
-    lcm_catkin
-    bot_core_lcmtypes
-    img_classif_msgs_lcmtypes
-    dart_lcm dart_urdf
+    # lcm_catkin
+    # bot_core_lcmtypes
+    # img_classif_msgs_lcmtypes
+    # dart_lcm
+    dart_urdf
     dart_ros
     cmake_modules
     dart_segm_prior
@@ -26,7 +27,7 @@ find_package(CUDA REQUIRED)             # CUDA types used by DART
 find_package(Boost REQUIRED system filesystem thread) # traversing paths to find meshes
 find_package(GLUT REQUIRED)
 find_package(Pangolin REQUIRED)
-find_package(Eigen REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -120,7 +121,7 @@ find_package(JPEG REQUIRED)
 catkin_package(
     INCLUDE_DIRS ../include
 #  LIBRARIES lala
-    CATKIN_DEPENDS dart lcm_catkin
+    CATKIN_DEPENDS dart #lcm_catkin
 #  DEPENDS system_lib
 )
 
@@ -136,7 +137,7 @@ catkin_package(
 include_directories(${catkin_INCLUDE_DIRS})
 include_directories(${CATKIN_DEVEL_PREFIX}/../../include)
 include_directories(${Pangolin_INCLUDE_DIRS})
-include_directories(${Eigen_INCLUDE_DIRS})
+include_directories(${Eigen3_INCLUDE_DIRS})
 include_directories(${dart_PREFIX}/include/dart/)
 include_directories(../include)
 include_directories(${CUDA_INCLUDE_DIRS})
@@ -153,7 +154,7 @@ add_definitions(-DCATKIN_LCMTYPES)
 # )
 
 cuda_add_library(sdf_prior ../src/SDFPrior.cpp ../include/SDFPrior.hpp)
-cuda_add_library(segm_prior ../src/SegmentationPrior.cpp ../include/SegmentationPrior.hpp)
+# cuda_add_library(segm_prior ../src/SegmentationPrior.cpp ../include/SegmentationPrior.hpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -164,7 +165,8 @@ cuda_add_library(segm_prior ../src/SegmentationPrior.cpp ../include/Segmentation
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/lala_node.cpp)
-cuda_add_executable(track_manipulation ../track_manipulation.cpp ../src/priors.cpp)
+# cuda_add_executable(track_manipulation ../track_manipulation.cpp ../src/priors.cpp)
+cuda_add_executable(track_manipulation ../track_manipulation.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -193,7 +195,7 @@ target_link_libraries(track_manipulation pangolin)
 target_link_libraries(track_manipulation ${Boost_LIBRARIES})
 
 target_link_libraries(track_manipulation sdf_prior)
-target_link_libraries(track_manipulation segm_prior)
+# target_link_libraries(track_manipulation segm_prior)
 
 #############
 ## Install ##

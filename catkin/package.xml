@@ -9,9 +9,9 @@
 
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>cmake_modules</build_depend>
-  <depend>liblcm</depend>
-  <depend>lcm_catkin</depend>
-  <depend>bot_core_lcmtypes</depend>
+  <!-- <depend>liblcm</depend> -->
+  <!-- <depend>lcm_catkin</depend> -->
+  <!-- <depend>bot_core_lcmtypes</depend> -->
   <depend>dart</depend>
   <depend>pangolin</depend>
   <depend>dart_lcm</depend>
