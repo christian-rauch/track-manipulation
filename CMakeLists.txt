@@ -1,113 +1,257 @@
-project("dartExample")
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.3)
+project(track_manipulation)
 
-if( NOT CMAKE_BUILD_TYPE )
-   set( CMAKE_BUILD_TYPE Release )
-endif()
-
+## Add support for C++11, supported in ROS Kinetic and newer
 add_definitions(-std=c++11)
 
 #add_definitions ("-Wall")
 
-# find packages with modules
-find_package(Pangolin REQUIRED)
-find_package(CUDA REQUIRED)
-find_package(Boost REQUIRED thread system)
+## Find catkin macros and libraries
+## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
+## is used, also find other catkin packages
+find_package(catkin REQUIRED COMPONENTS
+    # lcm_catkin
+    # bot_core_lcmtypes
+    # img_classif_msgs_lcmtypes
+    # dart_lcm
+    dart_ros
+    cmake_modules
+    dart_segm_prior
+    offline_prediction_npy)
+
+## System dependencies are found with CMake's conventions
+# find_package(Boost REQUIRED COMPONENTS system)
+find_package(CUDA REQUIRED)             # CUDA types used by DART
+find_package(Boost REQUIRED system filesystem thread) # traversing paths to find meshes
 find_package(GLUT REQUIRED)
+find_package(Pangolin REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(OpenGL REQUIRED)
+find_package(GLEW REQUIRED)
+find_package(ZLIB REQUIRED)
+find_package(JPEG REQUIRED)
+find_package(dart REQUIRED)
+find_package(dart_urdf REQUIRED)
 
+## Uncomment this if the package has a setup.py. This macro ensures
+## modules and global scripts declared therein get installed
+## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
+# catkin_python_setup()
 
-# find packages with pkg-config
-find_package(PkgConfig)
-pkg_check_modules(eigen3 REQUIRED eigen3)
-pkg_check_modules(matheval REQUIRED libmatheval)
-pkg_search_module(lcm REQUIRED lcm)
+################################################
+## Declare ROS messages, services and actions ##
+################################################
 
-pkg_search_module(dart REQUIRED dart)
-pkg_search_module(dart_urdf REQUIRED dart_urdf)
-pkg_search_module(dart_lcm REQUIRED dart_lcm)
+## To declare and build messages, services or actions from within this
+## package, follow these steps:
+## * Let MSG_DEP_SET be the set of packages whose message types you use in
+##   your messages/services/actions (e.g. std_msgs, actionlib_msgs, ...).
+## * In the file package.xml:
+##   * add a build_depend tag for "message_generation"
+##   * add a build_depend and a run_depend tag for each package in MSG_DEP_SET
+##   * If MSG_DEP_SET isn't empty the following dependency has been pulled in
+##     but can be declared for certainty nonetheless:
+##     * add a run_depend tag for "message_runtime"
+## * In this file (CMakeLists.txt):
+##   * add "message_generation" and every package in MSG_DEP_SET to
+##     find_package(catkin REQUIRED COMPONENTS ...)
+##   * add "message_runtime" and every package in MSG_DEP_SET to
+##     catkin_package(CATKIN_DEPENDS ...)
+##   * uncomment the add_*_files sections below as needed
+##     and list every .msg/.srv/.action file to be processed
+##   * uncomment the generate_messages entry below
+##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
+## Generate messages in the 'msg' folder
+# add_message_files(
+#   FILES
+#   Message1.msg
+#   Message2.msg
+# )
 
-include_directories(  ${Pangolin_INCLUDE_DIRS} )
-link_directories(     ${Pangolin_LIBRARY_DIRS} )
-link_libraries(       ${Pangolin_LIBRARIES}    )
+## Generate services in the 'srv' folder
+# add_service_files(
+#   FILES
+#   Service1.srv
+#   Service2.srv
+# )
 
-# DART installation
-include_directories(${dart_INCLUDEDIR}/dart)
-include_directories(${dart_urdf_INCLUDE_DIRS})
-include_directories(${dart_lcm_INCLUDE_DIRS})
+## Generate actions in the 'action' folder
+# add_action_files(
+#   FILES
+#   Action1.action
+#   Action2.action
+# )
 
-include_directories(
-    ${eigen3_INCLUDE_DIR}
-    ${PROJECT_SOURCE_DIR}
-    ${PROJECT_SOURCE_DIR}/src
-    ${GLUT_INCLUDE_DIRS}
-    include/
+## Generate added messages and services with any dependencies listed here
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs  # Or other packages containing msgs
+# )
+
+################################################
+## Declare ROS dynamic reconfigure parameters ##
+################################################
+
+## To declare and build dynamic reconfigure parameters within this
+## package, follow these steps:
+## * In the file package.xml:
+##   * add a build_depend and a run_depend tag for "dynamic_reconfigure"
+## * In this file (CMakeLists.txt):
+##   * add "dynamic_reconfigure" to
+##     find_package(catkin REQUIRED COMPONENTS ...)
+##   * uncomment the "generate_dynamic_reconfigure_options" section below
+##     and list every .cfg file to be processed
+
+## Generate dynamic reconfigure parameters in the 'cfg' folder
+# generate_dynamic_reconfigure_options(
+#   cfg/DynReconf1.cfg
+#   cfg/DynReconf2.cfg
+# )
+
+###################################
+## catkin specific configuration ##
+###################################
+## The catkin_package macro generates cmake config files for your package
+## Declare things to be passed to dependent projects
+## INCLUDE_DIRS: uncomment this if you package contains header files
+## LIBRARIES: libraries you create in this project that dependent projects also need
+## CATKIN_DEPENDS: catkin_packages dependent projects also need
+## DEPENDS: system dependencies of this project that dependent projects also need
+catkin_package(
+    INCLUDE_DIRS src
+#  LIBRARIES lala
+    CATKIN_DEPENDS #lcm_catkin
+#  DEPENDS system_lib
 )
-link_directories(
-    ${CMAKE_BINARY_DIR}
-    ${dart_LIBRARY_DIRS}
-    ${dart_urdf_LIBRARY_DIRS}
-    ${dart_lcm_LIBRARY_DIRS}
-)
-link_libraries(
-    ${Pangolin_LIBRARIES}
-    ${matheval_LIBRARIES}
-)
 
-set(SRC_LIST
-    src/priors.cpp
-    )
+###########
+## Build ##
+###########
 
-set(HDR_LIST
-    include/priors.hpp
-    )
+#include_directories(img_classif_msgs)
 
-###########################################
-# generate custom LCM messages
-set(LCM_MSGS
-    lcmtypes/image_class.lcm
-    lcmtypes/image_class_probability_t.lcm
-    )
-add_custom_target(lcm_msgs ALL lcm-gen -x ${LCM_MSGS} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(img_classif_msgs)
-
-##########################################################################
-#   Build GPU or CPU-only executable depending on cuda                   #
-##########################################################################
-
-include_directories( ${CUDA_INCLUDE_DIRS} )
+## Specify additional locations of header files
+## Your package locations should be listed before other locations
+ include_directories(include)
+include_directories(${catkin_INCLUDE_DIRS})
+#include_directories(${CATKIN_DEVEL_PREFIX}/../../include)
+include_directories(${Pangolin_INCLUDE_DIRS})
+include_directories(${Eigen3_INCLUDE_DIRS})
+#include_directories(${dart_PREFIX}/include/dart/)
+include_directories(src)
+include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${CUDA_TOOLKIT_ROOT_DIR}/samples/common/inc)
-cuda_include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${Boost_INCLUDE_DIRS})
 
-set(CUDA_NVCC_FLAGS "-arch=sm_35" "--use_fast_math"  "-O3" "--ptxas-options=--verbose") # "-fmad=false" "-DTHRUST_DEVICE_BACKEND=THRUST_DEVICE_BACKEND_OMP"
 add_definitions(-DCUDA_BUILD)
 
-set(all_sources ${sources} ${cpu_sources} ${gpu_sources} ${SRC_LIST} ${HDR_LIST})
-link_directories( ${CUDA_TOOLKIT_ROOT_DIR}/lib64/)
+add_definitions(-DCATKIN_LCMTYPES)
 
-#set(DART_ROOT ${PROJECT_SOURCE_DIR}/../dart CACHE PATH "path to the dart root directory")
-#message(STATUS "dart is at ${DART_ROOT}")
-#include_directories(${DART_ROOT}/src)
-#link_directories(${DART_ROOT}/lib)
+## Declare a C++ library
+# add_library(${PROJECT_NAME}
+#   src/${PROJECT_NAME}/lala.cpp
+# )
 
-cuda_add_executable(
-    #executable
-    track_manipulation
-    #sources
-    ${all_sources}
-    #main
-    track_manipulation.cpp
+cuda_add_library(sdf_prior src/SDFPrior.cpp include/SDFPrior.hpp)
+# cuda_add_library(segm_prior ../src/SegmentationPrior.cpp ../include/SegmentationPrior.hpp)
+target_link_libraries(sdf_prior dart)
+
+## Add cmake target dependencies of the library
+## as an example, code may need to be generated before libraries
+## either from message generation or dynamic reconfigure
+# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Declare a C++ executable
+## With catkin_make all packages are built within a single CMake context
+## The recommended prefix ensures that target names across packages don't collide
+# add_executable(${PROJECT_NAME}_node src/lala_node.cpp)
+# cuda_add_executable(track_manipulation ../track_manipulation.cpp ../src/priors.cpp)
+cuda_add_executable(track_manipulation track_manipulation.cpp)
+
+## Rename C++ executable without prefix
+## The above recommended prefix causes long target names, the following renames the
+## target back to the shorter version for ease of user use
+## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
+# set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
+
+## Add cmake target dependencies of the executable
+## same as for the library above
+# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Specify libraries to link a library or executable target against
+# target_link_libraries(${PROJECT_NAME}_node
+#   ${catkin_LIBRARIES}
+# )
+target_link_libraries(track_manipulation
+  ${catkin_LIBRARIES}
+  dart dart_urdf
 )
 
-add_library(sdf_prior src/SDFPrior.cpp include/SDFPrior.hpp)
-add_library(segm_prior src/SegmentationPrior.cpp include/SegmentationPrior.hpp)
+target_link_libraries(track_manipulation ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${GLEW_LIBRARIES})
+target_link_libraries(track_manipulation ${ZLIB_LIBRARIES} ${JPEG_LIBRARIES})
+target_link_libraries(track_manipulation ${CUDA_LIBRARIES})
 
-target_link_libraries(track_manipulation ${dart_LIBRARIES})
-target_link_libraries(track_manipulation ${dart_urdf_LIBRARIES})
-target_link_libraries(track_manipulation ${dart_lcm_LIBRARIES})
-target_link_libraries(track_manipulation ${Boost_SYSTEM_LIBRARIES} ${Boost_THREAD_LIBRARIES})
-target_link_libraries(track_manipulation ${GLUT_LIBRARY})
+target_link_libraries(track_manipulation pangolin)
+
+target_link_libraries(track_manipulation ${Boost_LIBRARIES})
+
 target_link_libraries(track_manipulation sdf_prior)
-target_link_libraries(track_manipulation segm_prior)
+# target_link_libraries(track_manipulation segm_prior)
 
-install(TARGETS track_manipulation RUNTIME DESTINATION bin)
+#############
+## Install ##
+#############
+
+# all install targets should use catkin DESTINATION variables
+# See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
+
+## Mark executable scripts (Python etc.) for installation
+## in contrast to setup.py, you can choose the destination
+# install(PROGRAMS
+#   scripts/my_python_script
+#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
+
+## Mark executables and/or libraries for installation
+# install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_node
+#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
+install(TARGETS ${PROJECT_NAME}
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+## Mark cpp header files for installation
+# install(DIRECTORY include/${PROJECT_NAME}/
+#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+#   FILES_MATCHING PATTERN "*.h"
+#   PATTERN ".svn" EXCLUDE
+# )
+install(DIRECTORY ../include/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
+)
+
+## Mark other files for installation (e.g. launch and bag files, etc.)
+# install(FILES
+#   # myfile1
+#   # myfile2
+#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+# )
+
+#############
+## Testing ##
+#############
+
+## Add gtest based cpp test target and link libraries
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_lala.cpp)
+# if(TARGET ${PROJECT_NAME}-test)
+#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
+# endif()
+
+## Add folders to be run by python nosetests
+# catkin_add_nosetests(test)
