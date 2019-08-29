@@ -1393,7 +1393,7 @@ int main(int argc, char *argv[]) {
 #endif
 
                 //tracker.optimizePoses();
-                tracker.optimizePoses(!useReportedPose);
+                tracker.optimizePoses(!useReportedPose, false);
 
                 // update accumulated info
                 for (int m=0; m<tracker.getNumModels(); ++m) {
