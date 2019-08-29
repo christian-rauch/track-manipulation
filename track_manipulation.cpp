@@ -43,16 +43,12 @@
 // select a robot
 //#define JUSTIN      // using XML model and data files
 //#define VALKYRIE    // using URDF model and LCM subscriptions
-#define KUKA        // using ROS
+//#define KUKA        // using ROS with external DA segmentation
+#define JACO          // using ROS
 
 //#define WITH_BOTTLE
 //#define WITH_BOX
 //#define WITH_RECT
-
-//#define DA_SDF
-#define DA_EXTERN
-//#define DA_SEGM // use for SDF with coloured links
-#define DA_CPROB
 
 // switch depth sources
 #ifdef JUSTIN
@@ -71,23 +67,40 @@
 #endif
 
 #ifdef KUKA
-    #define DEPTH_SOURCE_ROS
-    #define ENABLE_URDF
-    #define ENABLE_URDF_ROS
-    #define JOINTS_ROS
-    #ifdef DA_SEGM
-        #include <dart_segm_prior/SegmentationPrior.hpp>
-    #endif
-    #ifdef DA_CPROB
-        #include <dart_segm_prior/ClassProbDAPrior.hpp>
-    #endif
-    #define DA_DBG
     #define OFFLINE_PREDICTION
 //    #define SYNC
 //    #define TRK_CTRL
 //    #define CAM_CTRL
+    #define DA
+    #define ROS
+#endif
+
+#ifdef JACO
+    #define ROS
+#endif
+
+#ifdef DA
+    //#define DA_SDF
+    #define DA_EXTERN
+    //#define DA_SEGM // use for SDF with coloured links
+    #define DA_CPROB
+    #define DA_DBG
+#endif
+
+#ifdef ROS
+    #define DEPTH_SOURCE_ROS
+    #define ENABLE_URDF
+    #define ENABLE_URDF_ROS
+    #define JOINTS_ROS
     #define ROS_OPENNI2
 //    #define ROS_KINECT2_QHD
+#endif
+
+#ifdef DA_SEGM
+    #include <dart_segm_prior/SegmentationPrior.hpp>
+#endif
+#ifdef DA_CPROB
+    #include <dart_segm_prior/ClassProbDAPrior.hpp>
 #endif
 
 #ifdef DA_DBG
@@ -610,7 +623,7 @@ int main(int argc, char *argv[]) {
     std::cout<<"found robot: "<<robot.getName()<<std::endl;
 
     const std::vector<uint8_t> colour_estimated_model = {255, 200, 0}; // yellow-orange
-
+#if defined(KUKA)
 //    const std::string tracked_root_link = "sdh_palm_link";  // palm
 //    const std::string tracked_root_link = "lwr_arm_6_link"; // forearm
 //    const std::string tracked_root_link = "lwr_arm_5_link";
@@ -618,6 +631,9 @@ int main(int argc, char *argv[]) {
 //    const std::string tracked_root_link = "lwr_arm_3_link";
 //    const std::string tracked_root_link = "lwr_arm_1_link";
 //    const std::string tracked_root_link = "world_frame";
+#elif defined(JACO)
+    const std::string tracked_root_link = "root";
+#endif
     dart::HostOnlyModel robot_tracked = dart::readModelURDFxml(urdf_xml, tracked_root_link, colour_estimated_model);
     tracker.addModel(robot_tracked,
                      modelSdfResolution,    // modelSdfResolution, def = 0.002
@@ -1033,7 +1049,7 @@ int main(int argc, char *argv[]) {
 #endif
 #endif
 
-#ifdef KUKA
+
     // tracked pose
     dart::MirroredModel & robot_mm = tracker.getModel(tracker.getModelIDbyName(robot_tracked.getName()));
     dart::Pose & robot_tracked_pose = tracker.getPose(robot_tracked.getName());
@@ -1041,7 +1057,6 @@ int main(int argc, char *argv[]) {
     // reported pose
     dart::Pose robot_pose = nullReductionPose(robot);
     robot_pose.zero();
-#endif
 
 
 #ifdef ENABLE_JUSTIN
@@ -1233,10 +1248,12 @@ int main(int argc, char *argv[]) {
 #ifdef ROS_KINECT2_QHD
         const static std::string optical_frame = "kinect2_rgb_optical_frame";
 #endif
-        const dart::SE3 Tmc = jprovider.getTransform("world_frame", optical_frame);
-//        const dart::SE3 Tmc = jprovider.getTransform("world_frame", "kinect2_ir_optical_frame");
-//        const dart::SE3 Tmc = jprovider.getTransform("world_frame", "kinect2_rgb_optical_frame");
-        robot_pose.setTransformModelToCamera(Tmc);
+#if defined(KUKA)
+        static const std::string root = "world_frame";
+#elif defined(JACO)
+        static const std::string root = "root";
+#endif
+        robot_pose.setTransformModelToCamera(jprovider.getTransform(root, optical_frame));
         robot.setPose(robot_pose);
 #endif
         // reset robot pose when jumps in time have been detected (restat log)
@@ -1246,7 +1263,6 @@ int main(int argc, char *argv[]) {
         }
         depth_time_prev = depthSource->getDepthTime();
 
-#ifdef KUKA
         if(do_reset.exchange(false) || useReportedPose) {
             // reset tracked pose
             robot_tracked_pose.setReducedArticulation(joints);
@@ -1265,7 +1281,6 @@ int main(int argc, char *argv[]) {
 #endif
             robot_mm.setPose(robot_tracked_pose);
         }
-#endif
 
 #ifdef VALKYRIE
         if(pangolin::Pushed(resetRobotPose) || useReportedPose) {
@@ -1429,6 +1444,7 @@ int main(int argc, char *argv[]) {
                 const std::string depth_frame = depthSource->getDepthOpticalFrame();
                 const uint64_t depth_time = depthSource->getDepthTime();
                 // publish link reported and estimated pose in camera frame
+#if defined(KUKA)
                 frame_estimated.publishFrame("sdh_palm_link", depth_frame, depth_time);
                 frame_tracked_f1.publishFrame("sdh_finger_13_link", depth_frame, depth_time);
                 frame_tracked_f2.publishFrame("sdh_finger_23_link", depth_frame, depth_time);
@@ -1436,6 +1452,7 @@ int main(int argc, char *argv[]) {
                 frame_tracked_f1tip.publishFrame("sdh_finger_1_tip_link", depth_frame, depth_time);
                 frame_tracked_f2tip.publishFrame("sdh_finger_2_tip_link", depth_frame, depth_time);
                 frame_tracked_f3tip.publishFrame("sdh_thumb_tip_link", depth_frame, depth_time);
+#endif
 #endif
 #ifdef DEPTH_SOURCE_ROS
 #ifndef TRK_CTRL
@@ -1683,11 +1700,9 @@ int main(int argc, char *argv[]) {
             val.renderWireframe();
 #endif
 
-#ifdef KUKA
 //            robot.renderWireframe();
 //            robot.render(127);
             robot.render(200);
-#endif
 
             // glColor3ub(0,0,0);
             // glutSolidSphere(0.02,10,10);
