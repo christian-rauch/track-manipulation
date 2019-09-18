@@ -532,7 +532,7 @@ int main(int argc, char *argv[]) {
     // Openni2
 #ifdef ROS_OPENNI2
     const std::string colour_topic = "/camera/rgb/image_rect_color/compressed";
-    const std::string depth_topic = "/camera/depth/image_rect_raw/compressedDepth";
+    const std::string depth_topic = "/camera/depth/image_rect_raw/compressed";
 //    const std::string depth_topic = "/filter/camera/depth/image_rect_raw/compressedDepth";
 #endif
 
