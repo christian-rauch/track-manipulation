@@ -1094,7 +1094,8 @@ int main(int argc, char *argv[]) {
     JointProviderROS jprovider;
     // initilise joint names from visualised model
     jprovider.setJointNames(robot);
-    jprovider.subscribe_joints("/joint_states");
+    jprovider.subscribe_joints("/joint_states"); const bool limits = true;
+//    jprovider.subscribe_joints("/kinopt/sol/state"); const bool limits = false;
     usleep(500000);
 
     JointPublisherROS jpublisher("state_estimated");
@@ -1254,7 +1255,7 @@ int main(int argc, char *argv[]) {
         static const std::string root = "root";
 #endif
         robot_pose.setTransformModelToCamera(jprovider.getTransform(root, optical_frame));
-        robot.setPose(robot_pose);
+        robot.setPose(robot_pose, limits);
 #endif
         // reset robot pose when jumps in time have been detected (restat log)
         if(depthSource->getDepthTime()<depth_time_prev) {
@@ -1279,7 +1280,7 @@ int main(int argc, char *argv[]) {
 #else
             robot_tracked_pose.setTransformModelToCamera(Tpc);
 #endif
-            robot_mm.setPose(robot_tracked_pose);
+            robot_mm.setPose(robot_tracked_pose, limits);
         }
 
 #ifdef VALKYRIE
@@ -1375,7 +1376,7 @@ int main(int argc, char *argv[]) {
                     }
                     tracker.getPose(m).setTransformModelToCamera(dart::SE3Fromse3(dart::se3(*poseVars[m][0],*poseVars[m][1],*poseVars[m][2],0,0,0))*
                             dart::SE3Fromse3(dart::se3(0,0,0,*poseVars[m][3],*poseVars[m][4],*poseVars[m][5])));
-                    tracker.updatePose(m);
+                    tracker.updatePose(m, limits);
                 }
             }
 
@@ -1393,7 +1394,7 @@ int main(int argc, char *argv[]) {
 #endif
 
                 //tracker.optimizePoses();
-                tracker.optimizePoses(!useReportedPose, false);
+                tracker.optimizePoses(!useReportedPose, false, limits);
 
                 // update accumulated info
                 for (int m=0; m<tracker.getNumModels(); ++m) {
@@ -1555,13 +1556,13 @@ int main(int argc, char *argv[]) {
 
                 for (int m=0; m<tracker.getNumModels(); ++m) {
 //                for (int m=1; m<=1; m+=10) {
-                    tracker.updatePose(m);
+                    tracker.updatePose(m, limits);
                     tracker.getModel(m).renderVoxels(levelSet);
                 }
             }
             else{
                 for (int m=0; m<tracker.getNumModels(); ++m) {
-                    tracker.updatePose(m);
+                    tracker.updatePose(m, limits);
                     tracker.getModel(m).render();
                 }
             }
