@@ -844,10 +844,10 @@ int main(int argc, char *argv[]) {
     }
 
     // pangolin variables
-    std::atomic_bool do_track(true);
+    std::atomic_bool do_track(false);
     std::atomic_bool do_reset(true);
 //    static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
-    static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
+    static pangolin::Var<bool> trackFromVideo("ui.track",do_track,false,true);
     static pangolin::Var<bool> stepVideo("ui.stepVideo",false,false);
     static pangolin::Var<bool> stepVideoBack("ui.stepVideoBack",false,false);
 #ifdef ENABLE_URDF
@@ -893,10 +893,9 @@ int main(int argc, char *argv[]) {
     pangolin::Var<int> itersPerFrame("opt.itersPerFrame",3,0,30);
 //    pangolin::Var<int> itersPerFrame("opt.itersPerFrame",50,0,200);
     pangolin::Var<float> normalThreshold("opt.normalThreshold",-1.01,-1.01,1.0);
-//    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.035,0.0,0.1);
-//    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.05,0.0,0.1);
-//    pangolin::Var<float> distanceThreshold("opt.distThr",0.06,0.0,0.1);
-    pangolin::Var<float> distanceThreshold("opt.distThr",0.04,0.0,0.1);
+//    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.035,0.0,0.1); // original
+    constexpr float def_threshold = 0.02f;
+    pangolin::Var<float> distanceThreshold("opt.distThr",def_threshold,0.0,0.1);
     pangolin::Var<float> handRegularization("opt.handRegularization",0.1,0,10); // 1.0
     pangolin::Var<float> objectRegularization("opt.objectRegularization",0.1,0,10); // 1.0
     pangolin::Var<float> resetInfoThreshold("opt.resetInfoThreshold",1.0e-5,1e-5,2e-5);
@@ -1262,7 +1261,7 @@ int main(int argc, char *argv[]) {
         // reset robot pose when jumps in time have been detected (restat log)
         if(depthSource->getDepthTime()<depth_time_prev) {
             do_reset.exchange(true);
-            do_track.exchange(true);
+//            do_track.exchange(true);
         }
         depth_time_prev = depthSource->getDepthTime();
 
