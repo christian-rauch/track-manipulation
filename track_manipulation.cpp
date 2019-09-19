@@ -922,6 +922,8 @@ int main(int argc, char *argv[]) {
 //    pangolin::Var<float> maxRotationDamping("opt.maxRotDamp",150,0,200);
     pangolin::Var<float> maxTranslationDamping("opt.maxTransDamp",5,0,10);
 
+    pangolin::Var<bool> publishEst("opt.pubEstState",false,false);
+
 #ifdef JUSTIN
     pangolin::Var<float> tableNormX("opt.tableNormX",initialTableNorm.x,-1,1);
     pangolin::Var<float> tableNormY("opt.tableNormY",initialTableNorm.y,-1,1);
@@ -1098,7 +1100,7 @@ int main(int argc, char *argv[]) {
 //    jprovider.subscribe_joints("/kinopt/sol/state"); const bool limits = false;
     usleep(500000);
 
-    JointPublisherROS jpublisher("state_estimated");
+    JointPublisherROS jpublisher("estimated/state");
 
     FramePosePublisher frame_estimated(robot, robot_mm, "tracking");
 
@@ -1440,8 +1442,6 @@ int main(int argc, char *argv[]) {
                 //lcm_object_frame_pub.publish_frame_pose("joint1");
 #endif
 #ifdef JOINTS_ROS
-                // publish estimated joint configuration
-                jpublisher.publish(robot_tracked_pose);
                 const std::string depth_frame = depthSource->getDepthOpticalFrame();
                 const uint64_t depth_time = depthSource->getDepthTime();
                 // publish link reported and estimated pose in camera frame
@@ -1466,6 +1466,10 @@ int main(int argc, char *argv[]) {
 #endif
             }
 
+            // publish estimated joint configuration
+            if(Pushed(publishEst) || trackFromVideo) {
+                jpublisher.publish(robot_tracked_pose, jprovider.getHeader());
+            }
         }
 //        usleep(100000);
         } // while true loop
