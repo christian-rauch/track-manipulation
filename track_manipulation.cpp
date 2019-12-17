@@ -844,7 +844,7 @@ int main(int argc, char *argv[]) {
     }
 
     // pangolin variables
-    std::atomic_bool do_track(false);
+    std::atomic_bool do_track(true);
     std::atomic_bool do_reset(true);
 //    static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
     static pangolin::Var<bool> trackFromVideo("ui.track",do_track,false,true);
@@ -852,7 +852,7 @@ int main(int argc, char *argv[]) {
     static pangolin::Var<bool> stepVideoBack("ui.stepVideoBack",false,false);
 #ifdef ENABLE_URDF
     static pangolin::Var<bool> resetRobotPose("ui.resetRobotPose",false,false);
-    static pangolin::Var<bool> useReportedPose("ui.useReportedPose",false,true);
+    static pangolin::Var<bool> useReportedPose("ui.useReportedPose",true,true);
 #endif
 
     static pangolin::Var<float> sigmaPixels("ui.sigmaPixels",3.0,0.01,4);
@@ -878,8 +878,8 @@ int main(int argc, char *argv[]) {
     static pangolin::Var<float> planeOffset("ui.planeOffset",-0.03,-0.05,0);
 #endif
 
-    static pangolin::Var<int> debugImg("ui.debugImg",DebugObsToModDA,0,DebugN);
-    //static pangolin::Var<int> debugImg("ui.debugImg",DebugObsToModErr,0,DebugN);
+    static pangolin::Var<int> debugImg("ui.debugImg",DebugObsToModErr,0,DebugN);
+    static pangolin::Var<float> errMax("ui.errMax",0.1,0,10);
 
     static pangolin::Var<bool> showObsSdf("ui.showObsSdf",false,true);
     static pangolin::Var<bool> showPredictedPoints("ui.showPredictedPoints",false,true);
@@ -890,11 +890,12 @@ int main(int argc, char *argv[]) {
 
     // optimization options
     pangolin::Var<bool> iterateButton("opt.iterate",false,false);
-    pangolin::Var<int> itersPerFrame("opt.itersPerFrame",3,0,30);
+    pangolin::Var<int> itersPerFrame("opt.itersPerFrame",1,0,30);
 //    pangolin::Var<int> itersPerFrame("opt.itersPerFrame",50,0,200);
     pangolin::Var<float> normalThreshold("opt.normalThreshold",-1.01,-1.01,1.0);
 //    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.035,0.0,0.1); // original
-    constexpr float def_threshold = 0.02f;
+    //constexpr float def_threshold = 0.02f;
+    constexpr float def_threshold = 0.05f;
     pangolin::Var<float> distanceThreshold("opt.distThr",def_threshold,0.0,0.1);
     pangolin::Var<float> handRegularization("opt.handRegularization",0.1,0,10); // 1.0
     pangolin::Var<float> objectRegularization("opt.objectRegularization",0.1,0,10); // 1.0
@@ -1095,8 +1096,9 @@ int main(int argc, char *argv[]) {
     JointProviderROS jprovider;
     // initilise joint names from visualised model
     jprovider.setJointNames(robot);
-    jprovider.subscribe_joints("/joint_states"); const bool limits = true;
-//    jprovider.subscribe_joints("/kinopt/sol/state"); const bool limits = false;
+    const bool limits = false;
+    jprovider.subscribe_joints("/joint_states");
+//    jprovider.subscribe_joints("/kinopt/sol/state");
     usleep(500000);
 
     JointPublisherROS jpublisher("estimated/state");
@@ -1896,7 +1898,6 @@ int main(int argc, char *argv[]) {
         }
         case DebugObsToModErr:
             {
-                static const float errMax = 0.01;
                 dart::colorRampHeatMapUnsat(imgDepthSize.devicePtr(),
                                             tracker.getDeviceDebugErrorObsToMod(),
                                             depthWidth,depthHeight,
