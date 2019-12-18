@@ -350,7 +350,8 @@ int main(int argc, char *argv[]) {
     ros::NodeHandle n("~");
     ros::Publisher pub_img_obs = n.advertise<sensor_msgs::Image>("depth/obs", 1);
     ros::Publisher pub_img_est = n.advertise<sensor_msgs::Image>("depth/est", 1);
-    ros::Publisher pub_img_diff = n.advertise<sensor_msgs::JointState>("depth/err", 1);
+    ros::Publisher pub_img_diff = n.advertise<sensor_msgs::Image>("depth/diff", 1);
+    ros::Publisher pub_img_err = n.advertise<sensor_msgs::JointState>("depth/err", 1);
 #endif
 
     // -=-=-=- initializations -=-=-=-
@@ -1648,12 +1649,15 @@ int main(int argc, char *argv[]) {
         split(pc_est, est_channels);
         pub_img_est.publish(cv_bridge::CvImage(hdr, "32FC1", est_channels[2]).toImageMsg());
 
+        const cv::Mat diff = cv::abs(est_channels[2]-z_obs);
+        pub_img_diff.publish(cv_bridge::CvImage(hdr, "32FC1", diff).toImageMsg());
+
         cv::Mat a2;
-        cv::pow(cv::abs(est_channels[2]-z_obs), 2, a2);
+        cv::pow(diff, 2, a2);
         sensor_msgs::JointState d;
         d.header.stamp.fromNSec(tracker.getPointCloudSource().getColorTime());
-        d.position.push_back(cv::mean(a2)[0]);
-        pub_img_diff.publish(d);
+        d.position.push_back(cv::mean(a2, est_channels[2]>0)[0]);
+        pub_img_err.publish(d);
 
         if (showTrackedPoints) {
 
