@@ -359,7 +359,8 @@ int main(int argc, char *argv[]) {
     cudaDeviceReset();
 
     //pangolin::CreateWindowAndBind("DART",640+4*panelWidth+1,2*480+1);
-    pangolin::CreateWindowAndBind("DART",2*640+3*panelWidth+1,2*480+1);
+//    pangolin::CreateWindowAndBind("DART",2*640+3*panelWidth+1,2*480+1);
+    pangolin::CreateWindowAndBind("DART",2*640+3*panelWidth+1,2*480+1, pangolin::Params({{"scheme", "headless"}}));
     pangolin::FinishFrame(); // blank window
 
     glewInit();
