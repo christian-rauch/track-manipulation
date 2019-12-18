@@ -96,6 +96,8 @@
 //    #define ROS_KINECT2_QHD
 #endif
 
+#include <cv_bridge/cv_bridge.h>
+
 #ifdef DA_SEGM
     #include <dart_segm_prior/SegmentationPrior.hpp>
 #endif
@@ -344,6 +346,13 @@ int main(int argc, char *argv[]) {
     spinner.start();
 #endif
 
+#ifdef ROS_NODE
+    ros::NodeHandle n("~");
+    ros::Publisher pub_img_obs = n.advertise<sensor_msgs::Image>("depth/obs", 1);
+    ros::Publisher pub_img_est = n.advertise<sensor_msgs::Image>("depth/est", 1);
+    ros::Publisher pub_img_diff = n.advertise<sensor_msgs::JointState>("depth/err", 1);
+#endif
+
     // -=-=-=- initializations -=-=-=-
     cudaSetDevice(0);
     cudaDeviceReset();
@@ -542,7 +551,7 @@ int main(int argc, char *argv[]) {
     const std::string depth_topic = "/kinect2/qhd/image_depth_rect/compressed";
 #endif
 
-    depthSource->setDistanceThreshold(1.5);
+//    depthSource->setDistanceThreshold(1.5);
 //    depthSource->setRoiXY({247, 470}, {75, 243});   // exp1_poses3, colour_1504968754756182425.png
     depthSource->subscribe_images(depth_topic, colour_topic);
 #endif
@@ -1620,6 +1629,31 @@ int main(int argc, char *argv[]) {
                 glPopMatrix();
             }
         }
+
+        // points clouds
+        const int nPoints = tracker.getPredictionWidth()*tracker.getPredictionHeight();
+
+        std_msgs::Header hdr;
+
+        // obs
+        cv::Mat_<float> z_obs(2*tracker.getPredictionHeight(), 2*tracker.getPredictionWidth(), 0.0);
+        memcpy(z_obs.data, depthSource->getDepth(), 4*nPoints*sizeof(float));
+        cv::resize(z_obs, z_obs, cv::Size(0, 0), 0.5, 0.5, cv::INTER_NEAREST);
+        pub_img_obs.publish(cv_bridge::CvImage(hdr, "32FC1", z_obs).toImageMsg());
+
+        // est
+        cv::Mat_<cv::Vec4f> pc_est(tracker.getPredictionHeight(), tracker.getPredictionWidth());
+        cudaMemcpy(pc_est.data, tracker.getDevicePredictedVertMap(), nPoints*sizeof(float4), cudaMemcpyDeviceToHost);
+        cv::Mat est_channels[4];
+        split(pc_est, est_channels);
+        pub_img_est.publish(cv_bridge::CvImage(hdr, "32FC1", est_channels[2]).toImageMsg());
+
+        cv::Mat a2;
+        cv::pow(cv::abs(est_channels[2]-z_obs), 2, a2);
+        sensor_msgs::JointState d;
+        d.header.stamp.fromNSec(tracker.getPointCloudSource().getColorTime());
+        d.position.push_back(cv::mean(a2)[0]);
+        pub_img_diff.publish(d);
 
         if (showTrackedPoints) {
 
