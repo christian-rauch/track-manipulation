@@ -35,6 +35,9 @@
 
 #include <viridis.hpp>
 
+#include <sensor_msgs/JointState.h>
+
+
 #include <thread>
 #include <atomic>
 
@@ -342,6 +345,11 @@ int main(int argc, char *argv[]) {
     ros::init(argc, argv, "dart");
     ros::AsyncSpinner spinner(4); // Use 4 threads
     spinner.start();
+#endif
+
+#ifdef ROS_NODE
+    ros::NodeHandle n("~");
+    ros::Publisher pub_err = n.advertise<sensor_msgs::JointState>("obs_mod_err", 1);
 #endif
 
     // -=-=-=- initializations -=-=-=-
@@ -1905,6 +1913,20 @@ int main(int argc, char *argv[]) {
                 imgDepthSize.syncDeviceToHost();
                 imgTexDepthSize.Upload(imgDepthSize.hostPtr(),GL_RGB,GL_UNSIGNED_BYTE);
                 imgTexDepthSize.RenderToViewportFlipY();
+
+                // download obs-to-mod error from GPU memory
+                cv::Mat_<float> imgObsToModErr(depthHeight, depthWidth);
+                cudaMemcpy(imgObsToModErr.data, tracker.getDeviceDebugErrorObsToMod(), (depthHeight*depthWidth)*sizeof(float), cudaMemcpyDeviceToHost);
+
+                // set NaN to 0
+                imgObsToModErr.setTo(0, cv::Mat(imgObsToModErr!=imgObsToModErr));
+
+                // abuse the JointState for stamped errors
+                sensor_msgs::JointState d;
+                d.header.stamp.fromNSec(tracker.getPointCloudSource().getColorTime());
+                d.name.push_back("mean");
+                d.position.push_back(cv::mean(cv::abs(imgObsToModErr))[0]);
+                pub_err.publish(d);
             }
             break;
         case DebugModToObsErr:
