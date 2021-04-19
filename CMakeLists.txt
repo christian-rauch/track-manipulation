@@ -32,6 +32,7 @@ find_package(ZLIB REQUIRED)
 find_package(JPEG REQUIRED)
 find_package(dart REQUIRED)
 find_package(dart_urdf REQUIRED)
+find_package(console_bridge REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
