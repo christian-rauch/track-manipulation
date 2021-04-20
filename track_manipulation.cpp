@@ -43,16 +43,18 @@
 // select a robot
 //#define JUSTIN      // using XML model and data files
 //#define VALKYRIE    // using URDF model and LCM subscriptions
-#define KUKA        // using ROS
+// #define KUKA        // using ROS
+
+#define MODEL // track a single rigid model
 
 //#define WITH_BOTTLE
 //#define WITH_BOX
 //#define WITH_RECT
 
 //#define DA_SDF
-#define DA_EXTERN
+// #define DA_EXTERN
 //#define DA_SEGM // use for SDF with coloured links
-#define DA_CPROB
+// #define DA_CPROB
 
 // switch depth sources
 #ifdef JUSTIN
@@ -88,6 +90,19 @@
 //    #define CAM_CTRL
     #define ROS_OPENNI2
 //    #define ROS_KINECT2_QHD
+#endif
+
+#ifdef MODEL
+    #define DEPTH_SOURCE_ROS
+    #define ENABLE_URDF
+    #define ENABLE_URDF_ROS
+    #define JOINTS_ROS
+    // #define DA_DBG
+//    #define SYNC
+//    #define TRK_CTRL
+//    #define CAM_CTRL
+    #define ROS_AZURE_KINECT
+    // #define ROS_MMF
 #endif
 
 #ifdef DA_DBG
@@ -383,6 +398,12 @@ int main(int argc, char *argv[]) {
 #ifdef ROS_OPENNI2
     const std::string camera_topic = "/camera/depth/camera_info";
 #endif
+#ifdef ROS_AZURE_KINECT
+    const std::string camera_topic = "/depth_to_rgb/camera_info";
+#endif
+#ifdef ROS_MMF
+    const std::string camera_topic = "/MMF/camera_info";
+#endif
 #ifdef ROS_KINECT2_QHD
     const std::string camera_topic = "/kinect2/qhd/camera_info";
 #endif
@@ -523,13 +544,22 @@ int main(int argc, char *argv[]) {
 //    const std::string depth_topic = "/filter/camera/depth/image_rect_raw/compressedDepth";
 #endif
 
+#ifdef ROS_AZURE_KINECT
+    const std::string colour_topic = "/rgb/image_raw/compressed";
+    const std::string depth_topic = "/depth_to_rgb/image_raw/compressed";
+#endif
+#ifdef ROS_MMF
+    const std::string colour_topic = "/MMF/model/colour/1/compressed";
+    const std::string depth_topic = "/MMF/model/depth/1/compressed";
+#endif
+
     // Kinect2
 #ifdef ROS_KINECT2_QHD
     const std::string colour_topic = "/kinect2/qhd/image_color_rect/compressed";
     const std::string depth_topic = "/kinect2/qhd/image_depth_rect/compressed";
 #endif
 
-    depthSource->setDistanceThreshold(1.5);
+    // depthSource->setDistanceThreshold(1.5);
 //    depthSource->setRoiXY({247, 470}, {75, 243});   // exp1_poses3, colour_1504968754756182425.png
     depthSource->subscribe_images(depth_topic, colour_topic);
 #endif
@@ -605,16 +635,21 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef ENABLE_URDF_ROS
-    const std::string urdf_xml = GetRobotURDF();
+#ifdef MODEL
+    const std::string urdf_xml = GetRobotURDF("/", "robot_description_track");
+#else
+const std::string urdf_xml = GetRobotURDF();
+#endif
     dart::HostOnlyModel robot = readModelURDFxml(urdf_xml);
     std::cout<<"found robot: "<<robot.getName()<<std::endl;
 
     const std::vector<uint8_t> colour_estimated_model = {255, 200, 0}; // yellow-orange
 
+    const std::string tracked_root_link = {};
 //    const std::string tracked_root_link = "sdh_palm_link";  // palm
 //    const std::string tracked_root_link = "lwr_arm_6_link"; // forearm
 //    const std::string tracked_root_link = "lwr_arm_5_link";
-    const std::string tracked_root_link = "lwr_arm_4_link";
+    // const std::string tracked_root_link = "lwr_arm_4_link";
 //    const std::string tracked_root_link = "lwr_arm_3_link";
 //    const std::string tracked_root_link = "lwr_arm_1_link";
 //    const std::string tracked_root_link = "world_frame";
@@ -1033,7 +1068,7 @@ int main(int argc, char *argv[]) {
 #endif
 #endif
 
-#ifdef KUKA
+#if defined(KUKA) || defined(MODEL)
     // tracked pose
     dart::MirroredModel & robot_mm = tracker.getModel(tracker.getModelIDbyName(robot_tracked.getName()));
     dart::Pose & robot_tracked_pose = tracker.getPose(robot_tracked.getName());
@@ -1077,10 +1112,13 @@ int main(int argc, char *argv[]) {
 
 #ifdef JOINTS_ROS
     JointProviderROS jprovider;
+#if !defined(MODEL)
+    // TODO: need box pose for camera->box transform
     // initilise joint names from visualised model
     jprovider.setJointNames(robot);
     jprovider.subscribe_joints("/joint_states");
     usleep(500000);
+#endif
 
     JointPublisherROS jpublisher("state_estimated");
 
@@ -1229,6 +1267,12 @@ int main(int argc, char *argv[]) {
         robot_pose.setReducedArticulation(joints);
 #ifdef ROS_OPENNI2
         const static std::string optical_frame = "camera_rgb_optical_frame";
+#endif
+#ifdef ROS_AZURE_KINECT
+        const static std::string optical_frame = "rgb_camera_link";
+#endif
+#ifdef ROS_MMF
+        const static std::string optical_frame = "rgb_camera_link";
 #endif
 #ifdef ROS_KINECT2_QHD
         const static std::string optical_frame = "kinect2_rgb_optical_frame";
