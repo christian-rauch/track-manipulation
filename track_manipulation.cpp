@@ -101,8 +101,8 @@
 //    #define SYNC
 //    #define TRK_CTRL
 //    #define CAM_CTRL
-    #define ROS_AZURE_KINECT
-    // #define ROS_MMF
+//    #define ROS_AZURE_KINECT
+     #define ROS_MMF
 #endif
 
 #ifdef DA_DBG
