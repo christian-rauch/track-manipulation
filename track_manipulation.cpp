@@ -1279,7 +1279,8 @@ const std::string urdf_xml = GetRobotURDF();
 #endif
         static const std::string world_frame = "world";
 //        std::cout << "waiting for tf from '" + world_frame + "' to '" + optical_frame + "'" << std::endl;
-        const dart::SE3 Tmc = jprovider.getTransform(world_frame, optical_frame);
+//        const dart::SE3 Tmc = jprovider.getTransform(world_frame, optical_frame);
+        const dart::SE3 Tmc = dart::SE3FromRotationX(0);
 //        const dart::SE3 Tmc = jprovider.getTransform("world_frame", "kinect2_ir_optical_frame");
 //        const dart::SE3 Tmc = jprovider.getTransform("world_frame", "kinect2_rgb_optical_frame");
         robot_pose.setTransformModelToCamera(Tmc);
