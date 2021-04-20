@@ -1277,7 +1277,9 @@ const std::string urdf_xml = GetRobotURDF();
 #ifdef ROS_KINECT2_QHD
         const static std::string optical_frame = "kinect2_rgb_optical_frame";
 #endif
-        const dart::SE3 Tmc = jprovider.getTransform("world_frame", optical_frame);
+        static const std::string world_frame = "world";
+//        std::cout << "waiting for tf from '" + world_frame + "' to '" + optical_frame + "'" << std::endl;
+        const dart::SE3 Tmc = jprovider.getTransform(world_frame, optical_frame);
 //        const dart::SE3 Tmc = jprovider.getTransform("world_frame", "kinect2_ir_optical_frame");
 //        const dart::SE3 Tmc = jprovider.getTransform("world_frame", "kinect2_rgb_optical_frame");
         robot_pose.setTransformModelToCamera(Tmc);
@@ -1473,6 +1475,7 @@ const std::string urdf_xml = GetRobotURDF();
                 const std::string depth_frame = depthSource->getDepthOpticalFrame();
                 const uint64_t depth_time = depthSource->getDepthTime();
                 // publish link reported and estimated pose in camera frame
+#ifdef KUKA
                 frame_estimated.publishFrame("sdh_palm_link", depth_frame, depth_time);
                 frame_tracked_f1.publishFrame("sdh_finger_13_link", depth_frame, depth_time);
                 frame_tracked_f2.publishFrame("sdh_finger_23_link", depth_frame, depth_time);
@@ -1480,6 +1483,7 @@ const std::string urdf_xml = GetRobotURDF();
                 frame_tracked_f1tip.publishFrame("sdh_finger_1_tip_link", depth_frame, depth_time);
                 frame_tracked_f2tip.publishFrame("sdh_finger_2_tip_link", depth_frame, depth_time);
                 frame_tracked_f3tip.publishFrame("sdh_thumb_tip_link", depth_frame, depth_time);
+#endif
 #endif
 #ifdef DEPTH_SOURCE_ROS
 #ifndef TRK_CTRL
