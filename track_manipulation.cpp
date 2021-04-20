@@ -402,7 +402,8 @@ int main(int argc, char *argv[]) {
     const std::string camera_topic = "/depth_to_rgb/camera_info";
 #endif
 #ifdef ROS_MMF
-    const std::string camera_topic = "/MMF/camera_info";
+//    const std::string camera_topic = "/MMF/camera_info";
+    const std::string camera_topic = "/MMF/model/depth/camera_info";
 #endif
 #ifdef ROS_KINECT2_QHD
     const std::string camera_topic = "/kinect2/qhd/camera_info";
@@ -645,7 +646,7 @@ const std::string urdf_xml = GetRobotURDF();
 
     const std::vector<uint8_t> colour_estimated_model = {255, 200, 0}; // yellow-orange
 
-    const std::string tracked_root_link = {};
+    const std::string tracked_root_link = "box";
 //    const std::string tracked_root_link = "sdh_palm_link";  // palm
 //    const std::string tracked_root_link = "lwr_arm_6_link"; // forearm
 //    const std::string tracked_root_link = "lwr_arm_5_link";
@@ -1122,14 +1123,18 @@ const std::string urdf_xml = GetRobotURDF();
 
     JointPublisherROS jpublisher("state_estimated");
 
-    FramePosePublisher frame_estimated(robot, robot_mm, "tracking");
+//    FramePosePublisher frame_estimated(robot, robot_mm, "tracking");
 
-    FramePosePublisher frame_tracked_f1(robot, robot_mm, "tracking/f1");
-    FramePosePublisher frame_tracked_f2(robot, robot_mm, "tracking/f2");
-    FramePosePublisher frame_tracked_f3(robot, robot_mm, "tracking/f3");
-    FramePosePublisher frame_tracked_f1tip(robot, robot_mm, "tracking/f1tip");
-    FramePosePublisher frame_tracked_f2tip(robot, robot_mm, "tracking/f2tip");
-    FramePosePublisher frame_tracked_f3tip(robot, robot_mm, "tracking/f3tip");
+//    FramePosePublisher frame_tracked_f1(robot, robot_mm, "tracking/f1");
+//    FramePosePublisher frame_tracked_f2(robot, robot_mm, "tracking/f2");
+//    FramePosePublisher frame_tracked_f3(robot, robot_mm, "tracking/f3");
+//    FramePosePublisher frame_tracked_f1tip(robot, robot_mm, "tracking/f1tip");
+//    FramePosePublisher frame_tracked_f2tip(robot, robot_mm, "tracking/f2tip");
+//    FramePosePublisher frame_tracked_f3tip(robot, robot_mm, "tracking/f3tip");
+
+#ifdef MODEL
+    FramePosePublisher box_estimated(robot, robot_mm, "box");
+#endif
 #endif
 #ifdef ENABLE_URDF
     do_reset = true;
@@ -1277,10 +1282,12 @@ const std::string urdf_xml = GetRobotURDF();
 #ifdef ROS_KINECT2_QHD
         const static std::string optical_frame = "kinect2_rgb_optical_frame";
 #endif
-        static const std::string world_frame = "world";
+//        static const std::string world_frame = "world";
+        static const std::string world_frame = "box_com";
 //        std::cout << "waiting for tf from '" + world_frame + "' to '" + optical_frame + "'" << std::endl;
-//        const dart::SE3 Tmc = jprovider.getTransform(world_frame, optical_frame);
-        const dart::SE3 Tmc = dart::SE3FromRotationX(0);
+        const dart::SE3 Tmc = jprovider.getTransform(world_frame, optical_frame);
+//        const dart::SE3 Tmc = jprovider.getTransform(optical_frame, world_frame);
+//        const dart::SE3 Tmc = dart::SE3FromRotationX(0); // Identity
 //        const dart::SE3 Tmc = jprovider.getTransform("world_frame", "kinect2_ir_optical_frame");
 //        const dart::SE3 Tmc = jprovider.getTransform("world_frame", "kinect2_rgb_optical_frame");
         robot_pose.setTransformModelToCamera(Tmc);
@@ -1293,11 +1300,12 @@ const std::string urdf_xml = GetRobotURDF();
         }
         depth_time_prev = depthSource->getDepthTime();
 
-#ifdef KUKA
+#if defined(KUKA) || defined(MODEL)
         if(do_reset.exchange(false) || useReportedPose) {
             // reset tracked pose
             robot_tracked_pose.setReducedArticulation(joints);
             const dart::SE3 Tpc = robot.getTransformFrameToCamera(robot.getFrameIdByName(tracked_root_link));
+            std::cout << "reset pose: " << std::endl << Tpc << std::endl;
 #ifdef TRK_CTRL
             // we want to perturb the palm
             // palm pose in camera frame
@@ -1485,6 +1493,13 @@ const std::string urdf_xml = GetRobotURDF();
                 frame_tracked_f2tip.publishFrame("sdh_finger_2_tip_link", depth_frame, depth_time);
                 frame_tracked_f3tip.publishFrame("sdh_thumb_tip_link", depth_frame, depth_time);
 #endif
+                try {
+                  box_estimated.publishFrame("box", depth_frame, depth_time);
+                }
+                catch(const std::runtime_error &e) {
+                  std::cout << "ignore: " << e.what() << std::endl;
+                }
+
 #endif
 #ifdef DEPTH_SOURCE_ROS
 #ifndef TRK_CTRL
