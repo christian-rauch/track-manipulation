@@ -99,7 +99,7 @@
     #define JOINTS_ROS
     // #define DA_DBG
 //    #define SYNC
-//    #define TRK_CTRL
+    #define TRK_CTRL
 //    #define CAM_CTRL
 //    #define ROS_AZURE_KINECT
      #define ROS_MMF
@@ -1306,18 +1306,18 @@ const std::string urdf_xml = GetRobotURDF();
             robot_tracked_pose.setReducedArticulation(joints);
             const dart::SE3 Tpc = robot.getTransformFrameToCamera(robot.getFrameIdByName(tracked_root_link));
             std::cout << "reset pose: " << std::endl << Tpc << std::endl;
-#ifdef TRK_CTRL
-            // we want to perturb the palm
-            // palm pose in camera frame
-            const dart::SE3 Torg = robot.getTransformFrameToCamera(robot.getFrameIdByName("sdh_palm_link"));
-            // perturbed palm pose in camera frame
-            const dart::SE3 Tpp = Torg*trk_ctrl.getPerturbation();
-            // palm pose in tracked frame
-            const dart::SE3 Tfp = SE3Invert(Tpc) * Torg;
-            robot_tracked_pose.setTransformModelToCamera(Tpp * SE3Invert(Tfp));
-#else
+//#ifdef TRK_CTRL
+//            // we want to perturb the palm
+//            // palm pose in camera frame
+//            const dart::SE3 Torg = robot.getTransformFrameToCamera(robot.getFrameIdByName("sdh_palm_link"));
+//            // perturbed palm pose in camera frame
+//            const dart::SE3 Tpp = Torg*trk_ctrl.getPerturbation();
+//            // palm pose in tracked frame
+//            const dart::SE3 Tfp = SE3Invert(Tpc) * Torg;
+//            robot_tracked_pose.setTransformModelToCamera(Tpp * SE3Invert(Tfp));
+//#else
             robot_tracked_pose.setTransformModelToCamera(Tpc);
-#endif
+//#endif
             robot_mm.setPose(robot_tracked_pose);
         }
 #endif
@@ -1381,9 +1381,9 @@ const std::string urdf_xml = GetRobotURDF();
         opts.debugModToObsErr = ((pointColoringPred == PointColoringErr) || (debugImg == DebugModToObsErr));
         opts.debugJTJ = (debugImg == DebugJTJ);
         opts.numIterations = itersPerFrame;
-#ifdef TRK_CTRL
-        opts.numIterations = 1;
-#endif
+//#ifdef TRK_CTRL
+//        opts.numIterations = 1;
+//#endif
 
         if (pangolin::Pushed(stepVideoBack)) {
             tracker.stepBackward();
