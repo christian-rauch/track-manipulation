@@ -1,5 +1,14 @@
 cmake_minimum_required(VERSION 2.8.3)
+
+if (POLICY CMP0048)
+  cmake_policy(SET CMP0048 NEW)
+endif (POLICY CMP0048)
+
 project(track_manipulation)
+
+
+# CMP0072
+set(OpenGL_GL_PREFERENCE "GLVND")
 
 ## Add support for C++11, supported in ROS Kinetic and newer
 add_definitions(-std=c++11)
