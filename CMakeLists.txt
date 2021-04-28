@@ -32,8 +32,10 @@ find_package(GLEW REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(JPEG REQUIRED)
 find_package(dart REQUIRED)
-find_package(dart_urdf REQUIRED)
 find_package(console_bridge REQUIRED)
+
+include(FindPkgConfig)
+pkg_check_modules(dart_urdf dart_urdf)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -189,6 +191,9 @@ target_link_libraries(track_manipulation
   ${catkin_LIBRARIES}
   dart dart_urdf
 )
+
+target_include_directories(track_manipulation PRIVATE ${dart_urdf_INCLUDE_DIRS})
+target_link_directories(track_manipulation PRIVATE ${dart_urdf_LIBRARY_DIRS})
 
 target_link_libraries(track_manipulation ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${GLEW_LIBRARIES})
 target_link_libraries(track_manipulation ${ZLIB_LIBRARIES} ${JPEG_LIBRARIES})
