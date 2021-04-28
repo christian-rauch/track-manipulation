@@ -1242,6 +1242,11 @@ const std::string urdf_xml = GetRobotURDF();
     std::thread thread_opt([&](){
         // optmisation thread
         while(true) {
+        // skip if no new data is available
+        if (depthSource->getDepthTime() == depth_time_prev) {
+          continue;
+        }
+
         // tracking on/off
         if(trackFromVideo.GuiChanged()) {
             do_track.store(trackFromVideo);
