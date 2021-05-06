@@ -646,7 +646,7 @@ const std::string urdf_xml = GetRobotURDF();
 
     const std::vector<uint8_t> colour_estimated_model = {255, 200, 0}; // yellow-orange
 
-    const std::string tracked_root_link = "box";
+    const std::string tracked_root_link = robot.getName();
 //    const std::string tracked_root_link = "sdh_palm_link";  // palm
 //    const std::string tracked_root_link = "lwr_arm_6_link"; // forearm
 //    const std::string tracked_root_link = "lwr_arm_5_link";
@@ -1133,7 +1133,7 @@ const std::string urdf_xml = GetRobotURDF();
 //    FramePosePublisher frame_tracked_f3tip(robot, robot_mm, "tracking/f3tip");
 
 #ifdef MODEL
-    FramePosePublisher box_estimated(robot, robot_mm, "box");
+    FramePosePublisher box_estimated(robot, robot_mm, robot.getName());
 #endif
 #endif
 #ifdef ENABLE_URDF
@@ -1499,7 +1499,7 @@ const std::string urdf_xml = GetRobotURDF();
                 frame_tracked_f3tip.publishFrame("sdh_thumb_tip_link", depth_frame, depth_time);
 #endif
                 try {
-                  box_estimated.publishFrame("box", depth_frame, depth_time);
+                  box_estimated.publishFrame(robot.getName(), depth_frame, depth_time);
                 }
                 catch(const std::runtime_error &e) {
                   std::cout << "ignore: " << e.what() << std::endl;
