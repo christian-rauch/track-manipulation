@@ -1288,7 +1288,7 @@ const std::string urdf_xml = GetRobotURDF();
         const static std::string optical_frame = "kinect2_rgb_optical_frame";
 #endif
 //        static const std::string world_frame = "world";
-        static const std::string world_frame = "box_init";
+        static const std::string world_frame = robot.getName()+"_init";
 //        std::cout << "waiting for tf from '" + world_frame + "' to '" + optical_frame + "'" << std::endl;
         const dart::SE3 Tmc = jprovider.getTransform(world_frame, optical_frame);
 //        const dart::SE3 Tmc = jprovider.getTransform(optical_frame, world_frame);
