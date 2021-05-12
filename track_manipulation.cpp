@@ -550,8 +550,10 @@ int main(int argc, char *argv[]) {
     const std::string depth_topic = "/depth_to_rgb/image_raw/compressed";
 #endif
 #ifdef ROS_MMF
-    const std::string colour_topic = "/MMF/model/colour/1/compressed";
-    const std::string depth_topic = "/MMF/model/depth/1/compressed";
+    const uint8_t model_id = ros::param::param<int>("~id", 1);
+    std::cout << "tracking model ID: " << int(model_id) << std::endl;
+    const std::string colour_topic = "/MMF/model/colour/"+std::to_string(model_id)+"/compressed";
+    const std::string depth_topic = "/MMF/model/depth/"+std::to_string(model_id)+"/compressed";
 #endif
 
     // Kinect2
