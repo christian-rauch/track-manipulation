@@ -866,7 +866,7 @@ const std::string urdf_xml = GetRobotURDF();
     }
 
     // pangolin variables
-    std::atomic_bool do_track(true);
+    std::atomic_bool do_track(false);
     std::atomic_bool do_reset(true);
 //    static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
     static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
