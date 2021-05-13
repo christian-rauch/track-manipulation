@@ -917,7 +917,7 @@ const std::string urdf_xml = GetRobotURDF();
 
     // optimization options
     pangolin::Var<bool> iterateButton("opt.iterate",false,false);
-    pangolin::Var<int> itersPerFrame("opt.itersPerFrame",3,0,30);
+    pangolin::Var<int> itersPerFrame("opt.itersPerFrame",20,0,30);
 //    pangolin::Var<int> itersPerFrame("opt.itersPerFrame",50,0,200);
     pangolin::Var<float> normalThreshold("opt.normalThreshold",-1.01,-1.01,1.0);
 //    pangolin::Var<float> distanceThreshold("opt.distanceThreshold",0.035,0.0,0.1);
