@@ -867,7 +867,7 @@ const std::string urdf_xml = GetRobotURDF();
 
     // pangolin variables
     std::atomic_bool do_track(false);
-    std::atomic_bool do_reset(true);
+    std::atomic_bool do_reset(false);
 //    static pangolin::Var<bool> trackFromVideo("ui.track",false,false,true);
     static pangolin::Var<bool> trackFromVideo("ui.track",true,false,true);
     static pangolin::Var<bool> stepVideo("ui.stepVideo",false,false);
@@ -1138,11 +1138,12 @@ const std::string urdf_xml = GetRobotURDF();
     FramePosePublisher box_estimated(robot, robot_mm, robot.getName());
 #endif
 #endif
-#ifdef ENABLE_URDF
-    do_reset = true;
-#endif
+//#ifdef ENABLE_URDF
+//    do_reset = true;
+//#endif
 #ifdef TRK_CTRL
-    TrackControl trk_ctrl(do_track, do_reset);
+    std::shared_ptr<dart::SE3> Tpc_init = nullptr;
+    TrackControl trk_ctrl(do_track, do_reset, Tpc_init);
 #endif
 
 #ifdef SYNC
@@ -1292,6 +1293,7 @@ const std::string urdf_xml = GetRobotURDF();
 //        static const std::string world_frame = "world";
         static const std::string world_frame = robot.getName()+"_init";
 //        std::cout << "waiting for tf from '" + world_frame + "' to '" + optical_frame + "'" << std::endl;
+        // NOTE: this will wait indefinitely for a transformation between world and optical frame
         const dart::SE3 Tmc = jprovider.getTransform(world_frame, optical_frame);
 //        const dart::SE3 Tmc = jprovider.getTransform(optical_frame, world_frame);
 //        const dart::SE3 Tmc = dart::SE3FromRotationX(0); // Identity
@@ -1308,10 +1310,17 @@ const std::string urdf_xml = GetRobotURDF();
         depth_time_prev = depthSource->getDepthTime();
 
 #if defined(KUKA) || defined(MODEL)
-        if(do_reset.exchange(false) || useReportedPose) {
+        if(Tpc_init && (do_reset.exchange(false) || useReportedPose)) {
             // reset tracked pose
             robot_tracked_pose.setReducedArticulation(joints);
-            const dart::SE3 Tpc = robot.getTransformFrameToCamera(robot.getFrameIdByName(tracked_root_link));
+            dart::SE3 Tpc;
+            if (Tpc_init) {
+              Tpc = *Tpc_init;
+              Tpc_init = nullptr;
+            }
+            else {
+              Tpc = robot.getTransformFrameToCamera(robot.getFrameIdByName(tracked_root_link));
+            }
             std::cout << "reset pose: " << std::endl << Tpc << std::endl;
 //#ifdef TRK_CTRL
 //            // we want to perturb the palm
