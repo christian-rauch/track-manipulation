@@ -572,7 +572,12 @@ int main(int argc, char *argv[]) {
 
     const static int obsSdfSize = 64;
     const static float obsSdfResolution = 0.01*32/obsSdfSize;
+    // SDF resolution, 2mm by default
+#ifdef ROS_MMF
+    const static float defaultModelSdfResolution = ros::param::param<float>("~sdf_res", 2e-3);
+#else
     const static float defaultModelSdfResolution = 2e-3; //1.5e-3;
+#endif
     const static float3 obsSdfOffset = make_float3(0,0,0.1);
 
     imgTexDepthSize.Reinitialise(depthSource->getDepthWidth(), depthSource->getDepthHeight());
