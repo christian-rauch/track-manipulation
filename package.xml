@@ -14,8 +14,8 @@
   <!-- <depend>bot_core_lcmtypes</depend> -->
   <depend>dart</depend>
   <depend>pangolin</depend>
-  <depend>dart_lcm</depend>
+  <!-- <depend>dart_lcm</depend> -->
   <depend>dart_urdf</depend>
   <depend>dart_ros</depend>
-  <depend>dart_segm_prior</depend>
+  <!-- <depend>dart_segm_prior</depend> -->
 </package>
