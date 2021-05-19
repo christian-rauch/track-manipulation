@@ -403,7 +403,8 @@ int main(int argc, char *argv[]) {
 #endif
 #ifdef ROS_MMF
 //    const std::string camera_topic = "/MMF/camera_info";
-    const std::string camera_topic = "/MMF/model/depth/camera_info";
+    const std::string base_topic = ros::names::resolve("/MMF/model", true);
+    const std::string camera_topic = base_topic+"/camera_info";
 #endif
 #ifdef ROS_KINECT2_QHD
     const std::string camera_topic = "/kinect2/qhd/camera_info";
@@ -550,8 +551,8 @@ int main(int argc, char *argv[]) {
     const std::string depth_topic = "/depth_to_rgb/image_raw/compressed";
 #endif
 #ifdef ROS_MMF
-    const std::string colour_topic = "/MMF/model/colour/compressed";
-    const std::string depth_topic = "/MMF/model/depth/compressed";
+    const std::string colour_topic = base_topic+"/colour/compressed";
+    const std::string depth_topic = base_topic+"/depth/compressed";
 #endif
 
     // Kinect2
