@@ -911,7 +911,7 @@ const std::string urdf_xml = GetRobotURDF();
     static pangolin::Var<bool> showPredictedPoints("ui.showPredictedPoints",false,true);
     static pangolin::Var<bool> showCollisionClouds("ui.showCollisionClouds",false,true);
 
-    static pangolin::Var<bool> record("ui.Record Start/Stop",false,false);
+//    static pangolin::Var<bool> record("ui.Record Start/Stop",false,false);
     static pangolin::Var<float> fps("ui.fps",0);
 
     // optimization options
@@ -1542,9 +1542,9 @@ const std::string urdf_xml = GetRobotURDF();
 
         const std::chrono::system_clock::time_point tstart = std::chrono::system_clock::now();
 
-        if (pangolin::HasResized()) {
-            pangolin::DisplayBase().ActivateScissorAndClear();
-        }
+//        if (pangolin::HasResized()) {
+//            pangolin::DisplayBase().ActivateScissorAndClear();
+//        }
 
         if (pangolinFrame % fpsWindow == 0) {
             pangolin::basetime time = pangolin::TimeNow();
@@ -2033,10 +2033,10 @@ const std::string urdf_xml = GetRobotURDF();
             std::cerr << cudaGetErrorString(err) << std::endl;
         }
 
-        if(pangolin::Pushed(record)) {
-            pangolin::DisplayBase().RecordOnRender("ffmpeg:[fps=30,unique_filename]//screencap.avi");
-            //pangolin::DisplayBase().RecordOnRender("ffmpeg:[fps=50,bps=8388608,unique_filename]//screencap.avi");
-        }
+//        if(pangolin::Pushed(record)) {
+//            pangolin::DisplayBase().RecordOnRender("ffmpeg:[fps=30,unique_filename]//screencap.avi");
+//            //pangolin::DisplayBase().RecordOnRender("ffmpeg:[fps=50,bps=8388608,unique_filename]//screencap.avi");
+//        }
 
         pangolin::FinishFrame();
 

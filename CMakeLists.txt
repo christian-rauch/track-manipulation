@@ -11,7 +11,7 @@ project(track_manipulation)
 set(OpenGL_GL_PREFERENCE "GLVND")
 
 ## Add support for C++11, supported in ROS Kinetic and newer
-add_definitions(-std=c++11)
+set(CMAKE_CXX_STANDARD 11)
 
 #add_definitions ("-Wall")
 
@@ -149,7 +149,6 @@ catkin_package(
  include_directories(include)
 include_directories(${catkin_INCLUDE_DIRS})
 #include_directories(${CATKIN_DEVEL_PREFIX}/../../include)
-include_directories(${Pangolin_INCLUDE_DIRS})
 include_directories(${Eigen3_INCLUDE_DIRS})
 #include_directories(${dart_PREFIX}/include/dart/)
 include_directories(src)
@@ -208,7 +207,7 @@ target_link_libraries(track_manipulation ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${G
 target_link_libraries(track_manipulation ${ZLIB_LIBRARIES} ${JPEG_LIBRARIES})
 target_link_libraries(track_manipulation ${CUDA_LIBRARIES})
 
-target_link_libraries(track_manipulation pangolin)
+target_link_libraries(track_manipulation pango_core pango_display pango_plot)
 
 target_link_libraries(track_manipulation ${Boost_LIBRARIES})
 
